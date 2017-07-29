@@ -13,12 +13,20 @@ class TestDFA(unittest.TestCase):
             ('q3', '1'): 'q2'
         }
 
+        self.tf2 = {
+            ('q1', '0'): 'q1',
+            ('q1', '1'): 'q2',
+            ('q2', '0'): 'q1',
+            ('q2', '1'): 'q2'
+        }
+
     def test_instantiation(self):
         bad_start_msg = "Start state is not a member of the fsa's state set."
         bad_accept_msg = "Accept states ('bad1', 'bad2'|'bad2', 'bad1') are not members of the fsa's state set."
         bad_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the alphabet are not single character strings."
         bad_range_msg = "State 'bad' in the range of the transition function is not in the fsa's state set."
         bad_domain_msg = "Pair '\('q3', '1'\)' is missing from transition function domain."
+        
         tf2 = self.tf1.copy()
         tf2[('q4', '!#')] = 'q3'
         tf2[('q4', 0)] = 'q2'
@@ -30,16 +38,23 @@ class TestDFA(unittest.TestCase):
         del tf4[('q3', '1')]
 
         with self.assertRaisesRegex(ValueError, bad_start_msg):
-            DFA(self.tf1, 0, {'q3'})
+            DFA(self.tf1, 0, {'q2'})
         with self.assertRaisesRegex(ValueError, bad_accept_msg):
             DFA(self.tf1, 'q1', {'bad1', 'bad2', 'q3', 'q2'})
         with self.assertRaisesRegex(ValueError, bad_alphabet_msg):
-            DFA(tf2, 'q1', {'q3'})
+            DFA(tf2, 'q1', {'q2'})
         with self.assertRaisesRegex(ValueError, bad_range_msg):
-            DFA(tf3, 'q1', {'q3'})
+            DFA(tf3, 'q1', {'q2'})
         with self.assertRaisesRegex(ValueError, bad_domain_msg):
-            DFA(tf4, 'q1', {'q3'})
+            DFA(tf4, 'q1', {'q2'})
 
+    def test_accepts(self):
+        m1 = DFA(self.tf1, 'q1', {'q2'})
+        m2 = DFA(self.tf2, 'q1', {'q1'})
+        self.assertTrue(m1.accepts('101'))
+        self.assertFalse(m1.accepts('1000'))
+        self.assertFalse(m2.accepts('101'))
+        self.assertTrue(m2.accepts('1000'))
 
 unittest.main()
 
