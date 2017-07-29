@@ -13,12 +13,46 @@ class TestDFA(unittest.TestCase):
             ('q3', '1'): 'q2'
         }
 
-        self.tf2 = {
+        tf2 = {
             ('q1', '0'): 'q1',
             ('q1', '1'): 'q2',
             ('q2', '0'): 'q1',
             ('q2', '1'): 'q2'
         }
+
+        tf4 = {
+            ('s', 'a'): 'q1',
+            ('s', 'b'): 'r1',
+            ('q1', 'a'): 'q1',
+            ('q1', 'b'): 'q2',
+            ('q2', 'a'): 'q1',
+            ('q2', 'b'): 'q2',
+            ('r1', 'a'): 'r2',
+            ('r1', 'b'): 'r1',
+            ('r2', 'a'): 'r2',
+            ('r2', 'b'): 'r1'
+        }
+
+        tf5 = {
+            ('q0', '*'): 'q0',
+            ('q0', '0'): 'q0',
+            ('q0', '1'): 'q1',
+            ('q0', '2'): 'q2',
+            ('q1', '*'): 'q0',
+            ('q1', '0'): 'q1',
+            ('q1', '1'): 'q2',
+            ('q1', '2'): 'q0',
+            ('q2', '*'): 'q0',
+            ('q2', '0'): 'q2',
+            ('q2', '1'): 'q0',
+            ('q2', '2'): 'q1'
+        }
+
+        self.m1 = DFA(self.tf1, 'q1', {'q2'})
+        self.m2 = DFA(tf2, 'q1', {'q2'})
+        self.m3 = DFA(tf2, 'q1', {'q1'})
+        self.m4 = DFA(tf4, 's', {'q1', 'r1'})
+        self.m5 = DFA(tf5, 'q0', {'q0'})
 
     def test_instantiation(self):
         bad_start_msg = "Start state is not a member of the fsa's state set."
@@ -49,12 +83,37 @@ class TestDFA(unittest.TestCase):
             DFA(tf4, 'q1', {'q2'})
 
     def test_accepts(self):
-        m1 = DFA(self.tf1, 'q1', {'q2'})
-        m2 = DFA(self.tf2, 'q1', {'q1'})
-        self.assertTrue(m1.accepts('101'))
-        self.assertFalse(m1.accepts('1000'))
-        self.assertFalse(m2.accepts('101'))
-        self.assertTrue(m2.accepts('1000'))
+        bad_string_msg = "Symbol '#' not in fsa's alphabet"
+        with self.assertRaisesRegex(ValueError, bad_string_msg):
+            self.m1.accepts('01100#0')
+
+        self.assertTrue(self.m1.accepts('0101010101'))
+        self.assertTrue(self.m1.accepts('0101000000'))
+        self.assertFalse(self.m1.accepts('101000'))
+        self.assertFalse(self.m1.accepts('0001000'))
+
+        self.assertTrue(self.m2.accepts('1001'))
+        self.assertFalse(self.m2.accepts('110'))
+        self.assertFalse(self.m2.accepts(''))
+
+        self.assertFalse(self.m3.accepts('1001'))
+        self.assertTrue(self.m3.accepts('110'))
+        self.assertTrue(self.m3.accepts(''))
+
+        self.assertTrue(self.m4.accepts('abbababbba'))
+        self.assertTrue(self.m4.accepts('bbbbaabbab'))
+        self.assertFalse(self.m4.accepts('aaabbabbbb'))
+        self.assertFalse(self.m4.accepts('bababababa'))
+
+        self.assertTrue(self.m5.accepts(''))
+        self.assertTrue(self.m5.accepts('*'))
+        self.assertTrue(self.m5.accepts('01022202'))
+        self.assertTrue(self.m5.accepts('22*00'))
+        self.assertFalse(self.m5.accepts('2101112'))
+        self.assertFalse(self.m5.accepts('02121*1'))
+
+    # def test_union(self):
+    #     m1 = DFA(self.tf1, 'q1', )
 
 unittest.main()
 

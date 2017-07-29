@@ -110,9 +110,10 @@ class NFA:
         return False if current_states & self.accept_states == set() else True
 
     def _check_input(self, string):
-        non_alphabet_symbols = set(list(string)) - self.alphabet
-        if non_alphabet_symbols != set():
-            raise ValueError("Symbols {} not in fsa's alphabet".format(*non_alphabet_symbols))
+        bad_symbols = set(list(string)) - self.alphabet
+        self._error_message(bad_symbols,
+            "Symbol {} not in fsa's alphabet",
+            "Symbols {} not in fsa's alphabet")
 
 
 class DFA(NFA):
