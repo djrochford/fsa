@@ -187,8 +187,8 @@ class DFA(NFA):
                 if None in dfa1.states:
                     ordinal1 = "first" if dfa1 == self else "second"
                     ordinal2 = "second" if dfa1 == self else "first"
-                    raise ValueError("""The alphabet of the {} DFA has symbols that are not in the alphabet of the {} DFA, 
-                        and the {} DFA has `None` among its states. That's not allowed.""".format(ordinal2, ordinal1, ordinal1))
+                    raise ValueError("The alphabet of the {} DFA has symbols that are not in the alphabet of the {} DFA, " \
+                        "and the {} DFA has `None` among its states. That's not allowed.".format(ordinal2, ordinal1, ordinal1))
                 else:
                     new_states = dfa1.states | {None}
                     for symbol in union_alphabet:

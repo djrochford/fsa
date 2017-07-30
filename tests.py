@@ -119,7 +119,14 @@ class TestDFA(unittest.TestCase):
         self.assertTrue(m1_union_m5.accepts('22*12'))
         self.assertFalse(m1_union_m5.accepts('0101000'))
         
-        # with self.assertRaisesRegex(ValueError, )
+        bad_union_message = "The alphabet of the second DFA has symbols that are not in the alphabet of the first DFA, " \
+            "and the first DFA has `None` among its states. That's not allowed."
+        tf2 = self.tf1.copy()
+        tf2[(None, '0')] = 'q1'
+        tf2[(None, '1')] = 'q2'
+        m2 = DFA(tf2, 'q1', {'q2'})
+        with self.assertRaisesRegex(ValueError, bad_union_message):
+            bad_union = m2 | self.m5
 
 # class TestNFA(unittest.TestCase):
 
