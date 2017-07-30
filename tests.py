@@ -112,17 +112,41 @@ class TestDFA(unittest.TestCase):
         self.assertFalse(self.m5.accepts('2101112'))
         self.assertFalse(self.m5.accepts('02121*1'))
 
-    # def test_union(self):
-    #     m1 = DFA(self.tf1, 'q1', )
+    def test_union(self):
+        m1_union_m5 = self.m1 | self.m5
+        self.assertTrue(m1_union_m5.accepts('10100'))
+        self.assertTrue(m1_union_m5.accepts('10110'))
+        self.assertTrue(m1_union_m5.accepts('22*12'))
+        self.assertFalse(m1_union_m5.accepts('0101000'))
+        
+        # with self.assertRaisesRegex(ValueError, )
+
+# class TestNFA(unittest.TestCase):
+
+#     def setUp(self):
+#         self.tf1 = {
+#             ('q1', '0'): {'q1'},
+#             ('q1', '1'): {'q1', 'q2'},
+#             ('q2', '0'): {'q3'},
+#             ('q2', '1'): {'q3'},
+#             ('q3', '0'): {'q4'},
+#             ('q3', '1'): {'q4'},
+#             ('q4', '0'): set(),
+#             ('q4', '1'): set(),
+#         }
+
+#     def test_instantiation(self):
+#         bad_start_msg = "Start state is not a member of the fsa's state set."
+#         bad_accept_msg = "Accept states ('bad1', 'bad2'|'bad2', 'bad1') are not members of the fsa's state set."
+#         bad_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the alphabet are not single character strings."
+#         bad_range_msg = "State 'bad' in the range of the transition function is not in the fsa's state set."
+#         bad_domain_msg = "Pair '\('q3', '1'\)' is missing from transition function domain."
+
+
 
 unittest.main()
 
-# m2_transition = {
-#     ('q1', '0'): 'q1',
-#     ('q1', '1'): 'q2',
-#     ('q2', '0'): 'q1',
-#     ('q2', '1'): 'q2',
-# }
+
 # n1_transition = {
 #     ('q1', '0'): {'q1'},
 #     ('q1', '1'): {'q1', 'q2'},

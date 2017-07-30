@@ -1,4 +1,4 @@
-import itertools as it
+from itertools import product
 
 class NFA:
     """A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state 
@@ -57,32 +57,42 @@ class NFA:
 
     def _good_accept(self):
         bad_accept_states = self.accept_states - self.states
-        self._error_message(bad_accept_states,
+        self._error_message(
+            bad_accept_states,
             "Accept state {} is not a member of the fsa's state set.",
-            "Accept states {} are not members of the fsa's state set.")
+            "Accept states {} are not members of the fsa's state set."
+        )
 
     def _good_alphabet(self):
         bad_symbols = {x for x in self.alphabet if not (type(x) is str and len(x) == 1)}
-        self._error_message(bad_symbols,
+        self._error_message(
+            bad_symbols,
             "Symbol {} in the alphabet is not single character string.",
-            "Symbols {} in the alphabet are not single character strings.")
+            "Symbols {} in the alphabet are not single character strings."
+        )
 
     def _good_range(self):
-        bad_range = { x for x in self.transition_function.values() if type(x) != set }
-        if bad_range != set():
-
-            raise ValueError("Values {} in the range of the transition function are not sets.".format(*not_sets))
+        bad_range = { x for x in self.transition_function.values() if type(x) != set or type(x) != frozenset }
+        self._error_message(
+            bad_range,
+            "Value {} in the range of the transition function is not a set.",
+            "Values {} in the range of the transition function are not sets."
+        )
         transition_range = set().union(*self.transition_function.values())
-        bad_range = transition_range - self.states
-        if bad_range != set():
-            raise ValueError("States {} in the range of the transition function are not in the fsa's state set.".format(*bad_range))
-
+        also_bad_range = transition_range - self.states
+        self._error_message(
+            also_bad_range,
+            "State {} in the range of the transition function is not in the fsa's state set.",
+            "States {} in the range of the transition function are not in the fsa's state set."
+        )
 
     def _good_domain(self):
-        bad_pairs = it.product(self.states, self.alphabet) - self.transition_function.keys()
-        self._error_message(bad_pairs,
+        bad_pairs = product(self.states, self.alphabet) - self.transition_function.keys()
+        self._error_message(
+            bad_pairs,
             "Pair {} is missing from transition function domain.",
-            "Pairs {} are missing from transition function domain.")
+            "Pairs {} are missing from transition function domain."
+        )
 
     def _error_message(self, bad_set, message_singular, message_plural):
         if bad_set != set():
@@ -111,9 +121,11 @@ class NFA:
 
     def _check_input(self, string):
         bad_symbols = set(list(string)) - self.alphabet
-        self._error_message(bad_symbols,
+        self._error_message(
+            bad_symbols,
             "Symbol {} not in fsa's alphabet",
-            "Symbols {} not in fsa's alphabet")
+            "Symbols {} not in fsa's alphabet"
+        )
 
 
 class DFA(NFA):
@@ -140,9 +152,11 @@ class DFA(NFA):
     def _good_range(self):
         transition_range = set(self.transition_function.values())
         bad_range = transition_range - self.states
-        self._error_message(bad_range,
+        self._error_message(
+            bad_range,
             "State {} in the range of the transition function is not in the fsa's state set.",
-            "States {} in the range of the transition function are not in the fsa's state set.")
+            "States {} in the range of the transition function are not in the fsa's state set."
+        )
 
     def accepts(self, string):
         """Determines whether dfa accepts input string. Will raise a ValueError exception is the string contains
@@ -155,23 +169,51 @@ class DFA(NFA):
 
     def __or__(self, dfa):
         """Let A be the language recognised by dfa1, and B be the language recognized by dfa2. `dfa1 | dfa2` returns a dfa that 
-        recognizes A union B. The states of dfa1 | dfa2 are pairs of states from dfa1 and dfa2."""
-        union_states = it.product(self.states, dfa.states)
+        recognizes A union B. The states of dfa1 | dfa2 are ordered pairs of states from dfa1 and dfa2.
+
+        Except for the caveat below, there is no problem with the input DFAs having different alphabets.
+
+        The function will throw an error if *both* of the following conditions hold:
+            1. The alphabet of dfa1 contains symbols that are not in the alphabet of dfa2
+            2. `None` is a state of dfa1
+        This is because, when condition 1 holds, `None` is used internally for a special purpose
+        that breaks if condition 2 holds."""
         union_alphabet = self.alphabet | dfa.alphabet
+        def maybe_add_state(dfa1, dfa2):
+            new_tf = dfa1.transition_function.copy()
+            new_states = dfa1.states.copy()
+            extra_symbols = dfa2.alphabet - dfa1.alphabet
+            if extra_symbols != set():
+                if None in dfa1.states:
+                    ordinal1 = "first" if dfa1 == self else "second"
+                    ordinal2 = "second" if dfa1 == self else "first"
+                    raise ValueError("""The alphabet of the {} DFA has symbols that are not in the alphabet of the {} DFA, 
+                        and the {} DFA has `None` among its states. That's not allowed.""".format(ordinal2, ordinal1, ordinal1))
+                else:
+                    new_states = dfa1.states | {None}
+                    for symbol in union_alphabet:
+                        new_tf[(None, symbol)] = None
+                    for symbol in extra_symbols:
+                        for state in dfa1.states:
+                            new_tf[(state, symbol)] = None
+            return new_states, new_tf
+        self_states, self_tf = maybe_add_state(self, dfa)
+        other_states, other_tf = maybe_add_state(dfa, self)
+        union_states = product(self_states, other_states)
         union_transition_function = {}
-        for pair in it.product(union_states, union_alphabet):
+        for pair in product(union_states, union_alphabet):
             (state1, state2), symbol = pair
-            union_transition_function[pair] = (self.transition_function[(state1, symbol)], dfa.transition_function[(state2, symbol)])
+            union_transition_function[pair] = (self_tf[(state1, symbol)], other_tf[(state2, symbol)])
         union_start_state = (self.start_state, dfa.start_state)
-        union_accept_states = set(it.product(self.accept_states, dfa.states)) | set(it.product(self.states, dfa.accept_states))
+        union_accept_states = set(product(self.accept_states, other_states)) | set(product(self_states, dfa.accept_states))
         return DFA(union_transition_function, union_start_state, union_accept_states)
 
     @staticmethod
     def determinize(nfa):
         """Takes an nfa as input, returns a dfa that recognises the same language as the given nfa. It uses the power-set construction."""
         #powerset function defined at https://docs.python.org/3/library/itertools.html#itertools-recipes
-        def powerset(iterable):
-            s = list(iterable)
-            return it.chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
-        determinized_states = powerset(nfa.states)
-        determinized_alphabet = nfa.alphabet
+        # def powerset(iterable):
+        #     s = list(iterable)
+        #     return it.chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+        # determinized_states = powerset(nfa.states)
+        # determinized_alphabet = nfa.alphabet
