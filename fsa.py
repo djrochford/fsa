@@ -107,12 +107,12 @@ class NFA:
         symbols that aren't in the nfa's alphabet."""
         self._check_input(string)
         get_successor = lambda state, symbol : self.transition_function.get((state, symbol), set())
-        get_successors = lambda state_set, symbol: set().union(*{get_successor(state, symbol) for state in state_set})
+        get_successors = lambda state_set, symbol: set().union(*[get_successor(state, symbol) for state in state_set])
         def add_epsilons(state_set):
             epsilon_neighbours = get_successors(state_set, '')
             while epsilon_neighbours - state_set != set():
                 state_set = state_set | epsilon_neighbours
-                epislon_neighbours = get_symbol_successors(epsilon_neighbours, '') 
+                epislon_neighbours = get_successors(epsilon_neighbours, '') 
             return state_set
         current_states = add_epsilons({self.start_state})
         for symbol in string:

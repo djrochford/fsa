@@ -144,7 +144,42 @@ class TestNFA(unittest.TestCase):
             ('q4', '1'): {'q4'}
         }
 
-        # self.n1 = NFA(tf1, 'q1', {'q4'})
+        tf2 = {
+            ('q1', '0'): {'q1'},
+            ('q1', '1'): {'q1', 'q2'},
+            ('q2', '0'): {'q3'},
+            ('q2', '1'): {'q3'},
+            ('q3', '0'): {'q4'},
+            ('q3', '1'): {'q4'},
+            ('q4', '0'): set(),
+            ('q4', '1'): set()
+        }
+
+        
+        tf3 = {
+            ('s', ''): {'q1', 'r1'},
+            ('s', '0'): set(),
+            ('q1', '0'): {'q2'},
+            ('q2', '0'): {'q1'},
+            ('r1', '0'): {'r2'},
+            ('r2', '0'): {'r3'},
+            ('r3', '0'): {'r1'}
+        }
+
+        tf4 = {
+            ('q1', ''): {'q3'},
+            ('q1', 'a'): set(),
+            ('q1', 'b'): {'q2'},
+            ('q2', 'a'): {'q2', 'q3'},
+            ('q2', 'b'): {'q3'},
+            ('q3', 'a'): {'q1'},
+            ('q3', 'b'): set()
+        }
+
+        self.n1 = NFA(self.tf1, 'q1', {'q4'})
+        self.n2 = NFA(tf2, 'q1', {'q4'})
+        self.n3 = NFA(tf3, 's', {'q1', 'r1'})
+        self.n4 = NFA(tf4, 'q1', {'q1'})        
 
     def test_instantiation(self):
         bad_start_msg = "Start state 'bad' is not a member of the fsa's state set."
@@ -180,50 +215,28 @@ class TestNFA(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, bad_domain_msg):
             NFA(tf5, 'q1', {'q4'})
 
+    def test_accepts(self):
+        self.assertTrue(self.n1.accepts('10100100'))
+        self.assertTrue(self.n1.accepts('00111101'))
+        self.assertFalse(self.n1.accepts('10001001'))
+
+        self.assertTrue(self.n2.accepts('000100'))
+        self.assertFalse(self.n2.accepts('011010'))
+
+        self.assertTrue(self.n3.accepts(''))
+        self.assertTrue(self.n3.accepts('00'))
+        self.assertTrue(self.n3.accepts('000'))
+        self.assertTrue(self.n3.accepts('0000'))
+        self.assertTrue(self.n3.accepts('000000'))
+        self.assertFalse(self.n3.accepts('0'))
+        self.assertFalse(self.n3.accepts('00000'))
+
+        self.assertTrue(self.n4.accepts(''))
+        self.assertTrue(self.n4.accepts('a'))
+        self.assertTrue(self.n4.accepts('baba'))
+        self.assertTrue(self.n4.accepts('baa'))
+        self.assertFalse(self.n4.accepts('b'))
+        self.assertFalse(self.n4.accepts('bb'))
+        self.assertFalse(self.n4.accepts('babba'))
+
 unittest.main()
-
-        # self.tf2 = {
-        #     ('q1', '0'): {'q1'},
-        #     ('q1', '1'): {'q1', 'q2'},
-        #     ('q2', '0'): {'q3'},
-        #     ('q2', '1'): {'q3'},
-        #     ('q3', '0'): {'q4'},
-        #     ('q3', '1'): {'q4'},
-        #     ('q4', '0'): set(),
-        #     ('q4', '1'): set(),
-        # }
-
-# n1_transition = {
-#     ('q1', '0'): {'q1'},
-#     ('q1', '1'): {'q1', 'q2'},
-#     ('q2', '0'): {'q3'},
-#     ('q2', '1'): {'q3'},
-#     ('q3', '0'): {'q4'},
-#     ('q3', '1'): {'q4'},
-#     ('q4', '0'): set(),
-#     ('q4', '1'): set(),
-# }
-
-# n2_transition = {
-#     ('q1', '0'): {'q1'},
-#     ('q1', '1'): {'q1', 'q2'},
-#     ('q2', '0'): {'q3'},
-#     ('q2', '1'): set(),
-#     ('q2', ''): {'q3'},
-#     ('q3', '0'): set(),
-#     ('q3', '1'): {'q4'},
-#     ('q4', '0'): {'q4'},
-#     ('q4', '1'): {'q4'}
-# }
-
-# m_1 = DFA(m1_transition, 'q1', {'q2'})
-# m_2 = DFA(m2_transition, 'q1', {'q1'})
-# m_3 = m_1 | m_2
-
-# n_1 = NFA(n1_transition, 'q1', {'q4'})
-# n_2 = NFA(n2_transition, 'q1', {'q4'})
-
-# print(m_1.accepts('101'), m_1.accepts('1000'), m_2.accepts('101'), m_2.accepts('1000'))
-# print(m_3.accepts('101'), m_3.accepts('1000'))
-
-# print(n_1.accepts('00100'), n_1.accepts('0011'), n_2.accepts('00100'), n_2.accepts('0011'))
