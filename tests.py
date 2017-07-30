@@ -1,5 +1,5 @@
 import unittest
-from fsa import DFA
+from fsa import DFA, NFA
 
 class TestDFA(unittest.TestCase):
 
@@ -55,7 +55,7 @@ class TestDFA(unittest.TestCase):
         self.m5 = DFA(tf5, 'q0', {'q0'})
 
     def test_instantiation(self):
-        bad_start_msg = "Start state is not a member of the fsa's state set."
+        bad_start_msg = "Start state '0' is not a member of the fsa's state set."
         bad_accept_msg = "Accept states ('bad1', 'bad2'|'bad2', 'bad1') are not members of the fsa's state set."
         bad_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the alphabet are not single character strings."
         bad_range_msg = "State 'bad' in the range of the transition function is not in the fsa's state set."
@@ -128,31 +128,70 @@ class TestDFA(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, bad_union_message):
             bad_union = m2 | self.m5
 
-# class TestNFA(unittest.TestCase):
+class TestNFA(unittest.TestCase):
 
-#     def setUp(self):
-#         self.tf1 = {
-#             ('q1', '0'): {'q1'},
-#             ('q1', '1'): {'q1', 'q2'},
-#             ('q2', '0'): {'q3'},
-#             ('q2', '1'): {'q3'},
-#             ('q3', '0'): {'q4'},
-#             ('q3', '1'): {'q4'},
-#             ('q4', '0'): set(),
-#             ('q4', '1'): set(),
-#         }
+    def setUp(self):
 
-#     def test_instantiation(self):
-#         bad_start_msg = "Start state is not a member of the fsa's state set."
-#         bad_accept_msg = "Accept states ('bad1', 'bad2'|'bad2', 'bad1') are not members of the fsa's state set."
-#         bad_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the alphabet are not single character strings."
-#         bad_range_msg = "State 'bad' in the range of the transition function is not in the fsa's state set."
-#         bad_domain_msg = "Pair '\('q3', '1'\)' is missing from transition function domain."
+        self.tf1 = {
+            ('q1', '0'): {'q1'},
+            ('q1', '1'): {'q1', 'q2'},
+            ('q2', '0'): {'q3'},
+            ('q2', '1'): set(),
+            ('q2', ''): {'q3'},
+            ('q3', '0'): set(),
+            ('q3', '1'): {'q4'},
+            ('q4', '0'): {'q4'},
+            ('q4', '1'): {'q4'}
+        }
 
+        # self.n1 = NFA(tf1, 'q1', {'q4'})
 
+    def test_instantiation(self):
+        bad_start_msg = "Start state 'bad' is not a member of the fsa's state set."
+        bad_accept_msg = "Accept states ('bad1', 'bad2'|'bad2', 'bad1') are not members of the fsa's state set."
+        bad_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the alphabet are not single character strings."
+        bad_range_msg1 = "Value 'q1' in the range of the transition function is not a set."
+        bad_range_msg2 = "State 'bad' in the range of the transition function is not in the fsa's state set."
+        bad_domain_msg = "Pair '\('q3', '1'\)' is missing from transition function domain."
+
+        tf2 = self.tf1.copy()
+        tf2[('q5', '!#')] = {'q3'}
+        tf2[('q5', 0)] = {'q2'}
+        
+        tf3 = self.tf1.copy()
+        tf3[('q3', '1')] = 'q1'
+
+        tf4 = self.tf1.copy()
+        tf4[('q3', '1')] = {'bad'}
+
+        tf5 = self.tf1.copy()
+        del tf5[('q3', '1')]
+
+        with self.assertRaisesRegex(ValueError, bad_start_msg):
+            NFA(self.tf1, 'bad', {'q4'})
+        with self.assertRaisesRegex(ValueError, bad_accept_msg):
+            NFA(self.tf1, 'q1', {'bad1', 'bad2', 'q4'})
+        with self.assertRaisesRegex(ValueError, bad_alphabet_msg):
+            NFA(tf2, 'q1', {'q4'})
+        with self.assertRaisesRegex(ValueError, bad_range_msg1):
+            NFA(tf3, 'q1', {'q4'})
+        with self.assertRaisesRegex(ValueError, bad_range_msg2):
+            NFA(tf4, 'q1', {'q4'})
+        with self.assertRaisesRegex(ValueError, bad_domain_msg):
+            NFA(tf5, 'q1', {'q4'})
 
 unittest.main()
 
+        # self.tf2 = {
+        #     ('q1', '0'): {'q1'},
+        #     ('q1', '1'): {'q1', 'q2'},
+        #     ('q2', '0'): {'q3'},
+        #     ('q2', '1'): {'q3'},
+        #     ('q3', '0'): {'q4'},
+        #     ('q3', '1'): {'q4'},
+        #     ('q4', '0'): set(),
+        #     ('q4', '1'): set(),
+        # }
 
 # n1_transition = {
 #     ('q1', '0'): {'q1'},

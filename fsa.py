@@ -53,7 +53,7 @@ class NFA:
 
     def _good_start(self):
         if self.start_state not in self.states:
-            raise ValueError("Start state is not a member of the fsa's state set.")
+            raise ValueError("Start state '{}' is not a member of the fsa's state set.".format(self.start_state))
 
     def _good_accept(self):
         bad_accept_states = self.accept_states - self.states
@@ -72,7 +72,7 @@ class NFA:
         )
 
     def _good_range(self):
-        bad_range = { x for x in self.transition_function.values() if type(x) != set or type(x) != frozenset }
+        bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
         self._error_message(
             bad_range,
             "Value {} in the range of the transition function is not a set.",
