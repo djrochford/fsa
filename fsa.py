@@ -1,34 +1,6 @@
 from itertools import product
 
-class NFA:
-    """A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state 
-    and a set of accept states, in that order.
-
-    The transition function should be specified as a dictionary with tuple keys. 
-    These keys implicitly define the nfa's state-set and alphabet; the first elements of the tuples represent the
-    nfa's states, and the second elements are the symbols in the alphabet.
-
-    The nfa expects the symbols of the alphabet to be one character strings. States can be anything hashable. (Note that,
-    for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
-
-    The domain of the transition function is the power-set of the nfa's state set --- i.e., the values of the transition function
-    dictionary should be sets. The empty set is a valid value; in fact, you are required to specify that the successor set
-    for a given state-symbol pair is the empty set, if it is.
-
-    You can define epsilon-moves by using the empty string in place of an alphabet symbol in the transition function.
-    Note that the empty string will not be inferred to be a member of the alphabet (and hence the checks below will work as
-    you would expect).
-
-    The class will raise a ValueError exception on instantiation if any of the following are true:
-        1. the start state is not a member of the set of states inferred from the transition function;
-        2. the set of accept states is not a subset of the set of states inferred from the transition function;
-        3. a member of the alphabet inferred from the transition function is not a one-character string;
-        4. a member of the transition function's range is not a set;
-        5. the range of the transition function is not a subset of the power set of states inferred from the transition function.
-        6. The transition function is missing cases -- i.e., it is not the case that every pair of a state and a symbol
-        is in the domain of the transition function.
-    The exception message will specify which of these four conditions things triggered the exception, and which states/symbols
-    are the source of the problem."""
+class _Base:
 
     def __init__(self, transition_function, start_state, accept_states):
         self.transition_function = transition_function
@@ -71,21 +43,6 @@ class NFA:
             "Symbols {} in the alphabet are not single character strings."
         )
 
-    def _good_range(self):
-        bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
-        self._error_message(
-            bad_range,
-            "Value {} in the range of the transition function is not a set.",
-            "Values {} in the range of the transition function are not sets."
-        )
-        transition_range = set().union(*self.transition_function.values())
-        also_bad_range = transition_range - self.states
-        self._error_message(
-            also_bad_range,
-            "State {} in the range of the transition function is not in the fsa's state set.",
-            "States {} in the range of the transition function are not in the fsa's state set."
-        )
-
     def _good_domain(self):
         bad_pairs = product(self.states, self.alphabet) - self.transition_function.keys()
         self._error_message(
@@ -101,6 +58,60 @@ class NFA:
                 raise ValueError(message_singular.format(*quoted_members));
             else:
                 raise ValueError(message_plural.format((", ").join(quoted_members)))
+
+    def _check_input(self, string):
+        bad_symbols = set(list(string)) - self.alphabet
+        self._error_message(
+            bad_symbols,
+            "Symbol {} not in fsa's alphabet",
+            "Symbols {} not in fsa's alphabet"
+        )
+
+
+class NFA(_Base):
+    """A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state 
+    and a set of accept states, in that order.
+
+    The transition function should be specified as a dictionary with tuple keys. 
+    These keys implicitly define the nfa's state-set and alphabet; the first elements of the tuples represent the
+    nfa's states, and the second elements are the symbols in the alphabet.
+
+    The nfa expects the symbols of the alphabet to be one character strings. States can be anything hashable. (Note that,
+    for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+
+    The domain of the transition function is the power-set of the nfa's state set --- i.e., the values of the transition function
+    dictionary should be sets. The empty set is a valid value; in fact, you are required to specify that the successor set
+    for a given state-symbol pair is the empty set, if it is.
+
+    You can define epsilon-moves by using the empty string in place of an alphabet symbol in the transition function.
+    Note that the empty string will not be inferred to be a member of the alphabet (and hence the checks below will work as
+    you would expect).
+
+    The class will raise a ValueError exception on instantiation if any of the following are true:
+        1. the start state is not a member of the set of states inferred from the transition function;
+        2. the set of accept states is not a subset of the set of states inferred from the transition function;
+        3. a member of the alphabet inferred from the transition function is not a one-character string;
+        4. a member of the transition function's range is not a set;
+        5. the range of the transition function is not a subset of the power set of states inferred from the transition function.
+        6. The transition function is missing cases -- i.e., it is not the case that every pair of a state and a symbol
+        is in the domain of the transition function.
+    The exception message will specify which of these four conditions things triggered the exception, and which states/symbols
+    are the source of the problem."""
+
+    def _good_range(self):
+        bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
+        self._error_message(
+            bad_range,
+            "Value {} in the range of the transition function is not a set.",
+            "Values {} in the range of the transition function are not sets."
+        )
+        transition_range = set().union(*self.transition_function.values())
+        also_bad_range = transition_range - self.states
+        self._error_message(
+            also_bad_range,
+            "State {} in the range of the transition function is not in the fsa's state set.",
+            "States {} in the range of the transition function are not in the fsa's state set."
+        )
 
     def accepts(self, string):
         """Determines whether nfa accepts input string. Will raise a ValueError exception is the string contains
@@ -119,13 +130,6 @@ class NFA:
             current_states = add_epsilons(get_successors(current_states, symbol))
         return False if current_states & self.accept_states == set() else True
 
-    def _check_input(self, string):
-        bad_symbols = set(list(string)) - self.alphabet
-        self._error_message(
-            bad_symbols,
-            "Symbol {} not in fsa's alphabet",
-            "Symbols {} not in fsa's alphabet"
-        )
 
 
 class DFA(NFA):
@@ -207,13 +211,3 @@ class DFA(NFA):
         union_start_state = (self.start_state, dfa.start_state)
         union_accept_states = set(product(self.accept_states, other_states)) | set(product(self_states, dfa.accept_states))
         return DFA(union_transition_function, union_start_state, union_accept_states)
-
-    @staticmethod
-    def determinize(nfa):
-        """Takes an nfa as input, returns a dfa that recognises the same language as the given nfa. It uses the power-set construction."""
-        #powerset function defined at https://docs.python.org/3/library/itertools.html#itertools-recipes
-        # def powerset(iterable):
-        #     s = list(iterable)
-        #     return it.chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
-        # determinized_states = powerset(nfa.states)
-        # determinized_alphabet = nfa.alphabet
