@@ -239,4 +239,30 @@ class TestNFA(unittest.TestCase):
         self.assertFalse(self.n4.accepts('bb'))
         self.assertFalse(self.n4.accepts('babba'))
 
+    def test_determinize(self):
+        d1 = self.n4.determinize()
+        self.assertIsInstance(d1, DFA)
+        self.assertEqual(
+            d1.get_states(),
+            {
+                frozenset(),
+                frozenset({'q1'}),
+                frozenset({'q2'}),
+                frozenset({'q3'}),
+                frozenset({'q1', 'q2'}),
+                frozenset({'q1', 'q3'}),
+                frozenset({'q2', 'q3'}),
+                frozenset({'q1', 'q2', 'q3'})
+            }
+        )
+        self.assertTrue(d1.accepts(''))
+        self.assertTrue(d1.accepts('a'))
+        self.assertTrue(d1.accepts('baba'))
+        self.assertTrue(d1.accepts('baa'))
+        self.assertFalse(d1.accepts('b'))
+        self.assertFalse(d1.accepts('bb'))
+        self.assertFalse(d1.accepts('babba'))
+
+
+
 unittest.main()

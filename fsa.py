@@ -1,4 +1,4 @@
-from itertools import product
+from itertools import product, chain, combinations
 
 class _Base:
 
@@ -67,6 +67,21 @@ class _Base:
             "Symbols {} not in fsa's alphabet"
         )
 
+    def get_states(self):
+        return self.states
+
+    def get_alphabet(self):
+        return self.alphabet
+
+    def get_transition_function(self):
+        return self.transition_function
+
+    def get_start_state(self):
+        return self.start_state
+
+    def get_accept_states(self):
+        return self.accept_states
+
 
 class NFA(_Base):
     """A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state 
@@ -113,26 +128,50 @@ class NFA(_Base):
             "States {} in the range of the transition function are not in the fsa's state set."
         )
 
+
+    def _get_successors(self, state_set, symbol):
+        get_successor = lambda state,  s: self.transition_function.get((state, s), set())
+        return set().union(*[get_successor(state, symbol) for state in state_set])
+
+    def _add_epsilons(self, state_set):
+        epsilon_neighbours = self._get_successors(state_set, '')
+        while epsilon_neighbours - state_set != set():
+            state_set = state_set | epsilon_neighbours
+            epislon_neighbours = self._get_successors(epsilon_neighbours, '') 
+        return state_set
+
+    def _transition(self, state_set, symbol):
+        return self._add_epsilons(self._get_successors(state_set, symbol))
+
     def accepts(self, string):
         """Determines whether nfa accepts input string. Will raise a ValueError exception is the string contains
         symbols that aren't in the nfa's alphabet."""
         self._check_input(string)
-        get_successor = lambda state, symbol : self.transition_function.get((state, symbol), set())
-        get_successors = lambda state_set, symbol: set().union(*[get_successor(state, symbol) for state in state_set])
-        def add_epsilons(state_set):
-            epsilon_neighbours = get_successors(state_set, '')
-            while epsilon_neighbours - state_set != set():
-                state_set = state_set | epsilon_neighbours
-                epislon_neighbours = get_successors(epsilon_neighbours, '') 
-            return state_set
-        current_states = add_epsilons({self.start_state})
+        current_states = self._add_epsilons({self.start_state})
         for symbol in string:
-            current_states = add_epsilons(get_successors(current_states, symbol))
+            current_states = self._transition(current_states, symbol)
         return False if current_states & self.accept_states == set() else True
 
+    def determinize(self):
+        #powerset code an itertools recipe, from https://docs.python.org/3/library/itertools.html#recipes
+        #(minor adjustment made to make the result a set)
+        def powerset(iterable):
+            s = list(iterable)
+            return chain.from_iterable(set(combinations(s, r)) for r in range(len(s)+1))
+        determinized_states = powerset(self.states)
+        determinized_alphabet = self.alphabet
+        determinized_tf = {}
+        determinized_accept = set()
+        for (combination, symbol) in product(determinized_states, determinized_alphabet):
+            state = frozenset(combination)
+            pair = (state, symbol)
+            determinized_tf[pair] = frozenset(self._transition(*pair))
+            if state & self.accept_states != set():
+                determinized_accept.add(frozenset(combination))
+        determinized_start = frozenset(self._add_epsilons({self.start_state}))
+        return DFA(determinized_tf, determinized_start, determinized_accept)
 
-
-class DFA(NFA):
+class DFA(_Base):
     """A deterministic finite automaton class. Takes three parameters: a transition function, a start state 
     and a set of accept states, in that order.
 
