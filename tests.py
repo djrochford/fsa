@@ -263,6 +263,25 @@ class TestNFA(unittest.TestCase):
         self.assertFalse(d1.accepts('bb'))
         self.assertFalse(d1.accepts('babba'))
 
+        d2 = self.n3.determinize()
+        self.assertTrue(d2.accepts(''))
+        self.assertTrue(d2.accepts('00'))
+        self.assertTrue(d2.accepts('000'))
+        self.assertTrue(d2.accepts('0000'))
+        self.assertTrue(d2.accepts('000000'))
+        self.assertFalse(d2.accepts('0'))
+        self.assertFalse(d2.accepts('00000'))
+
+    def test_copy(self):
+        n1_copy = self.n1.copy()
+        self.assertEqual(
+            n1_copy.get_states(),
+            {'q1`', 'q2`', 'q3`', 'q4`'}
+        )
+        self.assertTrue(self.n1.accepts('10100100'))
+        self.assertTrue(self.n1.accepts('00111101'))
+        self.assertFalse(self.n1.accepts('10001001'))
+
 
 
 unittest.main()

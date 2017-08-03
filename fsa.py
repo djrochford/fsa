@@ -9,6 +9,7 @@ class _Base:
         self.states, self.alphabet = self._extract_states_alphabet(transition_function)
         self._well_defined()
 
+
     def _extract_states_alphabet(self, transition_function):
         [states_tuple, alphabet_tuple] = zip(*transition_function.keys())
         states = set(states_tuple)
@@ -68,19 +69,19 @@ class _Base:
         )
 
     def get_states(self):
-        return self.states
+        return self.states.copy()
 
     def get_alphabet(self):
-        return self.alphabet
+        return self.alphabet.copy()
 
     def get_transition_function(self):
-        return self.transition_function
+        return self.transition_function.copy()
 
     def get_start_state(self):
         return self.start_state
 
     def get_accept_states(self):
-        return self.accept_states
+        return self.accept_states.copy()
 
 
 class NFA(_Base):
@@ -95,7 +96,7 @@ class NFA(_Base):
     for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
 
     The domain of the transition function is the power-set of the nfa's state set --- i.e., the values of the transition function
-    dictionary should be sets. The empty set is a valid value; in fact, you are required to specify that the successor set
+    dictionary should be sets (or frozensets). The empty set is a valid value; in fact, you are required to specify that the successor set
     for a given state-symbol pair is the empty set, if it is.
 
     You can define epsilon-moves by using the empty string in place of an alphabet symbol in the transition function.
@@ -113,6 +114,19 @@ class NFA(_Base):
     The exception message will specify which of these four conditions things triggered the exception, and which states/symbols
     are the source of the problem."""
 
+    def copy(self):
+        new_to_old = {}
+        prime = lambda state : str(state) + '`'
+        for state in self.states:
+            new_to_old[prime(state)] = state
+        copy_tf = {}
+        for pair in product(new_to_old.keys(), self.alphabet):
+            state, symbol = pair
+            copy_tf[pair] = { prime(x) for x in self.transition_function[(new_to_old[state], symbol)] }
+        copy_start = prime(self.start_state)
+        copy_accept = { prime(x) for x in self.accept_states }
+        return NFA(copy_tf, copy_start, copy_accept)
+
     def _good_range(self):
         bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
         self._error_message(
@@ -127,7 +141,6 @@ class NFA(_Base):
             "State {} in the range of the transition function is not in the fsa's state set.",
             "States {} in the range of the transition function are not in the fsa's state set."
         )
-
 
     def _get_successors(self, state_set, symbol):
         get_successor = lambda state,  s: self.transition_function.get((state, s), set())
@@ -153,6 +166,8 @@ class NFA(_Base):
         return False if current_states & self.accept_states == set() else True
 
     def determinize(self):
+        """Returns a DFA that recognizes the same same language as the NFA instance.
+        The set of DFA states is the power-set of the set of NFA states."""
         #powerset code an itertools recipe, from https://docs.python.org/3/library/itertools.html#recipes
         #(minor adjustment made to make the result a set)
         def powerset(iterable):
@@ -167,7 +182,7 @@ class NFA(_Base):
             pair = (state, symbol)
             determinized_tf[pair] = frozenset(self._transition(*pair))
             if state & self.accept_states != set():
-                determinized_accept.add(frozenset(combination))
+                determinized_accept.add(state)
         determinized_start = frozenset(self._add_epsilons({self.start_state}))
         return DFA(determinized_tf, determinized_start, determinized_accept)
 
@@ -191,24 +206,6 @@ class DFA(_Base):
         is in the domain of the transition function.
     The exception message will specify which of these four conditions things triggered the exception, and which states/symbols
     are the source of the problem."""
-
-    def _good_range(self):
-        transition_range = set(self.transition_function.values())
-        bad_range = transition_range - self.states
-        self._error_message(
-            bad_range,
-            "State {} in the range of the transition function is not in the fsa's state set.",
-            "States {} in the range of the transition function are not in the fsa's state set."
-        )
-
-    def accepts(self, string):
-        """Determines whether dfa accepts input string. Will raise a ValueError exception is the string contains
-        symbols that aren't in the dfa's alphabet."""
-        self._check_input(string)
-        current_state = self.start_state
-        for symbol in string:
-            current_state = self.transition_function[(current_state, symbol)]
-        return False if current_state not in self.accept_states else True
 
     def __or__(self, dfa):
         """Let A be the language recognised by dfa1, and B be the language recognized by dfa2. `dfa1 | dfa2` returns a dfa that 
@@ -250,3 +247,23 @@ class DFA(_Base):
         union_start_state = (self.start_state, dfa.start_state)
         union_accept_states = set(product(self.accept_states, other_states)) | set(product(self_states, dfa.accept_states))
         return DFA(union_transition_function, union_start_state, union_accept_states)
+
+    def _good_range(self):
+        transition_range = set(self.transition_function.values())
+        bad_range = transition_range - self.states
+        self._error_message(
+            bad_range,
+            "State {} in the range of the transition function is not in the fsa's state set.",
+            "States {} in the range of the transition function are not in the fsa's state set."
+        )
+
+    def accepts(self, string):
+        """Determines whether dfa accepts input string. Will raise a ValueError exception is the string contains
+        symbols that aren't in the dfa's alphabet."""
+        self._check_input(string)
+        current_state = self.start_state
+        for symbol in string:
+            current_state = self.transition_function[(current_state, symbol)]
+        return False if current_state not in self.accept_states else True
+
+
