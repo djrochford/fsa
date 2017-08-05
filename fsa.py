@@ -68,6 +68,12 @@ class _Base:
             "Symbols {} not in fsa's alphabet"
         )
 
+    def _get_other_state(self, state_set):
+        other_state = 'new_state'
+        while other_state in state_set:
+            other_state = other_state + '`'
+        return other_state
+
     def get_states(self):
         return self.states.copy()
 
@@ -114,18 +120,45 @@ class NFA(_Base):
     The exception message will specify which of these four conditions things triggered the exception, and which states/symbols
     are the source of the problem."""
 
-    def copy(self):
-        new_to_old = {}
-        prime = lambda state : str(state) + '`'
-        for state in self.states:
-            new_to_old[prime(state)] = state
-        copy_tf = {}
-        for pair in product(new_to_old.keys(), self.alphabet):
-            state, symbol = pair
-            copy_tf[pair] = { prime(x) for x in self.transition_function[(new_to_old[state], symbol)] }
-        copy_start = prime(self.start_state)
-        copy_accept = { prime(x) for x in self.accept_states }
-        return NFA(copy_tf, copy_start, copy_accept)
+    def __or__(self, other):
+        """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 | dfa2` returns an nfa that 
+        recognizes A union B. The cardinality of the state-set of nfa1 | nfa2 is the cardinality of the state set of nfa1
+        plus the cardinality of the state-set of nfa2 plus 1.
+
+        There is no problem with the input NFAs having different alphabets."""
+        def copy(nfa):
+            new_to_old = {}
+            prime = lambda state : str(state) + '`'
+            copy_tf = {}
+            for state, symbol in nfa.transition_function.keys():
+                copy_tf[(prime(state), symbol)] = { prime(x) for x in nfa.transition_function[(state, symbol)] }
+            copy_start = prime(nfa.start_state)
+            copy_accept = { prime(x) for x in nfa.accept_states }
+            return NFA(copy_tf, copy_start, copy_accept)
+
+        union_alphabet = self.alphabet | other.alphabet
+        def add_empty_transitions(nfa1, nfa2):
+            new_tf = nfa1.transition_function.copy()
+            extra_symbols = nfa2.alphabet - nfa1.alphabet
+            if extra_symbols != set():
+                for pair in product(nfa1.states, extra_symbols):
+                    new_tf[pair] = set()
+            return new_tf
+        overlap = self.states & other.states
+        while overlap != set():
+            other = copy(other)
+            overlap = self.states & other.states
+        self_tf = add_empty_transitions(self, other)
+        other_tf = add_empty_transitions(other, self)
+        union_tf = {}
+        union_tf.update(self_tf)
+        union_tf.update(other_tf)
+        union_start_state = self._get_other_state(self.states | other.states)
+        union_tf[(union_start_state, '')] = { self.start_state, other.start_state }
+        for symbol in union_alphabet:
+            union_tf[(union_start_state, symbol)] = set()
+        union_accept_states = self.accept_states | other.accept_states
+        return NFA(union_tf, union_start_state, union_accept_states)
 
     def _good_range(self):
         bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
@@ -150,7 +183,7 @@ class NFA(_Base):
         epsilon_neighbours = self._get_successors(state_set, '')
         while epsilon_neighbours - state_set != set():
             state_set = state_set | epsilon_neighbours
-            epislon_neighbours = self._get_successors(epsilon_neighbours, '') 
+            epsilon_neighbours = self._get_successors(epsilon_neighbours, '') 
         return state_set
 
     def _transition(self, state_set, symbol):
@@ -186,6 +219,7 @@ class NFA(_Base):
         determinized_start = frozenset(self._add_epsilons({self.start_state}))
         return DFA(determinized_tf, determinized_start, determinized_accept)
 
+
 class DFA(_Base):
     """A deterministic finite automaton class. Takes three parameters: a transition function, a start state 
     and a set of accept states, in that order.
@@ -207,45 +241,35 @@ class DFA(_Base):
     The exception message will specify which of these four conditions things triggered the exception, and which states/symbols
     are the source of the problem."""
 
-    def __or__(self, dfa):
+    def __or__(self, other):
         """Let A be the language recognised by dfa1, and B be the language recognized by dfa2. `dfa1 | dfa2` returns a dfa that 
         recognizes A union B. The states of dfa1 | dfa2 are ordered pairs of states from dfa1 and dfa2.
 
-        Except for the caveat below, there is no problem with the input DFAs having different alphabets.
+        There is no problem with the input DFAs having different alphabets."""
 
-        The function will throw an error if *both* of the following conditions hold:
-            1. The alphabet of dfa1 contains symbols that are not in the alphabet of dfa2
-            2. `None` is a state of dfa1
-        This is because, when condition 1 holds, `None` is used internally for a special purpose
-        that breaks if condition 2 holds."""
-        union_alphabet = self.alphabet | dfa.alphabet
+        union_alphabet = self.alphabet | other.alphabet
         def maybe_add_state(dfa1, dfa2):
             new_tf = dfa1.transition_function.copy()
             new_states = dfa1.states.copy()
             extra_symbols = dfa2.alphabet - dfa1.alphabet
             if extra_symbols != set():
-                if None in dfa1.states:
-                    ordinal1 = "first" if dfa1 == self else "second"
-                    ordinal2 = "second" if dfa1 == self else "first"
-                    raise ValueError("The alphabet of the {} DFA has symbols that are not in the alphabet of the {} DFA, " \
-                        "and the {} DFA has `None` among its states. That's not allowed.".format(ordinal2, ordinal1, ordinal1))
-                else:
-                    new_states = dfa1.states | {None}
-                    for symbol in union_alphabet:
-                        new_tf[(None, symbol)] = None
-                    for symbol in extra_symbols:
-                        for state in dfa1.states:
-                            new_tf[(state, symbol)] = None
+                error_state = self._get_other_state(dfa1.states)
+                new_states = dfa1.states | { error_state }
+                for symbol in union_alphabet:
+                    new_tf[(error_state, symbol)] = error_state
+                for symbol in extra_symbols:
+                    for state in dfa1.states:
+                        new_tf[(state, symbol)] = error_state
             return new_states, new_tf
-        self_states, self_tf = maybe_add_state(self, dfa)
-        other_states, other_tf = maybe_add_state(dfa, self)
+        self_states, self_tf = maybe_add_state(self, other)
+        other_states, other_tf = maybe_add_state(other, self)
         union_states = product(self_states, other_states)
         union_transition_function = {}
         for pair in product(union_states, union_alphabet):
             (state1, state2), symbol = pair
             union_transition_function[pair] = (self_tf[(state1, symbol)], other_tf[(state2, symbol)])
-        union_start_state = (self.start_state, dfa.start_state)
-        union_accept_states = set(product(self.accept_states, other_states)) | set(product(self_states, dfa.accept_states))
+        union_start_state = (self.start_state, other.start_state)
+        union_accept_states = set(product(self.accept_states, other_states)) | set(product(self_states, other.accept_states))
         return DFA(union_transition_function, union_start_state, union_accept_states)
 
     def _good_range(self):

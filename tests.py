@@ -118,15 +118,6 @@ class TestDFA(unittest.TestCase):
         self.assertTrue(m1_union_m5.accepts('10110'))
         self.assertTrue(m1_union_m5.accepts('22*12'))
         self.assertFalse(m1_union_m5.accepts('0101000'))
-        
-        bad_union_message = "The alphabet of the second DFA has symbols that are not in the alphabet of the first DFA, " \
-            "and the first DFA has `None` among its states. That's not allowed."
-        tf2 = self.tf1.copy()
-        tf2[(None, '0')] = 'q1'
-        tf2[(None, '1')] = 'q2'
-        m2 = DFA(tf2, 'q1', {'q2'})
-        with self.assertRaisesRegex(ValueError, bad_union_message):
-            bad_union = m2 | self.m5
 
 class TestNFA(unittest.TestCase):
 
@@ -272,16 +263,25 @@ class TestNFA(unittest.TestCase):
         self.assertFalse(d2.accepts('0'))
         self.assertFalse(d2.accepts('00000'))
 
-    def test_copy(self):
-        n1_copy = self.n1.copy()
-        self.assertEqual(
-            n1_copy.get_states(),
-            {'q1`', 'q2`', 'q3`', 'q4`'}
-        )
-        self.assertTrue(self.n1.accepts('10100100'))
-        self.assertTrue(self.n1.accepts('00111101'))
-        self.assertFalse(self.n1.accepts('10001001'))
+    def test_union(self):
+        n1_union_n2 = self.n1 | self.n2
+        self.assertTrue(n1_union_n2.accepts('10100100'))
+        self.assertTrue(n1_union_n2.accepts('00111101'))
+        self.assertTrue(n1_union_n2.accepts('000100'))
+        self.assertTrue(n1_union_n2.accepts('011010'))
+        self.assertFalse(n1_union_n2.accepts('10001001'))
+        self.assertFalse(n1_union_n2.accepts('001001000'))
 
-
+        n1_union_n4 = self.n1 | self.n4
+        self.assertTrue(n1_union_n4.accepts('10100100'))
+        self.assertTrue(n1_union_n4.accepts('00111101'))
+        self.assertTrue(n1_union_n4.accepts(''))
+        self.assertTrue(n1_union_n4.accepts('a'))
+        self.assertTrue(n1_union_n4.accepts('baba'))
+        self.assertTrue(n1_union_n4.accepts('baa'))
+        self.assertFalse(n1_union_n4.accepts('10001001'))
+        self.assertFalse(n1_union_n4.accepts('b'))
+        self.assertFalse(n1_union_n4.accepts('bb'))
+        self.assertFalse(n1_union_n4.accepts('babba'))
 
 unittest.main()
