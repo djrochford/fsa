@@ -145,7 +145,6 @@ class TestNFA(unittest.TestCase):
             ('q4', '0'): set(),
             ('q4', '1'): set()
         }
-
         
         tf3 = {
             ('s', ''): {'q1', 'r1'},
@@ -283,5 +282,12 @@ class TestNFA(unittest.TestCase):
         self.assertFalse(n1_union_n4.accepts('b'))
         self.assertFalse(n1_union_n4.accepts('bb'))
         self.assertFalse(n1_union_n4.accepts('babba'))
+
+    def test_concat(self):
+        n1_concat_n2 = self.n1 + self.n2
+        self.assertTrue(n1_concat_n2.accepts('10100100000100'))
+        self.assertTrue(n1_concat_n2.accepts('00111101000100'))
+        self.assertFalse(n1_concat_n2.accepts('10100100011010'))
+        self.assertFalse(n1_concat_n2.accepts('00111101011010'))
 
 unittest.main()

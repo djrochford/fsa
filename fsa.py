@@ -121,11 +121,37 @@ class NFA(_Base):
     are the source of the problem."""
 
     def __or__(self, other):
-        """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 | dfa2` returns an nfa that 
+        """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 | nfa2` returns an nfa that 
         recognizes A union B. The cardinality of the state-set of nfa1 | nfa2 is the cardinality of the state set of nfa1
         plus the cardinality of the state-set of nfa2 plus 1.
 
         There is no problem with the input NFAs having different alphabets."""
+        new_self, new_other = self._prepare_for_combination(other)
+        union_tf = {}
+        union_tf.update(new_self.transition_function)
+        union_tf.update(new_other.transition_function)
+        union_start_state = new_self._get_other_state(new_self.states | new_other.states)
+        union_tf[(union_start_state, '')] = { new_self.start_state, new_other.start_state }
+        for symbol in new_self.alphabet | new_other.alphabet:
+            union_tf[(union_start_state, symbol)] = set()
+        union_accept_states = new_self.accept_states | new_other.accept_states
+        return NFA(union_tf, union_start_state, union_accept_states)
+
+    def __add__(self, other):
+        """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 + nfa2` returns an nfa that
+        recognizes A concat B -- i.e., the language consisten of the set of strins of the form a concat b, where a is an element of A
+        and b is an element of B. Note that a this `+` operation is not commutative."""
+
+        new_self, new_other = self._prepare_for_combination(other)
+        concat_tf = {}
+        concat_tf.update(new_self.transition_function)
+        concat_tf.update(new_other.transition_function)
+        for state in new_self.accept_states:
+            concat_tf[(state, '')] = {new_other.start_state}
+        return NFA(concat_tf, new_self.start_state, new_other.accept_states)
+
+        
+    def _prepare_for_combination(self, other):
         def copy(nfa):
             new_to_old = {}
             prime = lambda state : str(state) + '`'
@@ -135,30 +161,23 @@ class NFA(_Base):
             copy_start = prime(nfa.start_state)
             copy_accept = { prime(x) for x in nfa.accept_states }
             return NFA(copy_tf, copy_start, copy_accept)
-
-        union_alphabet = self.alphabet | other.alphabet
-        def add_empty_transitions(nfa1, nfa2):
-            new_tf = nfa1.transition_function.copy()
-            extra_symbols = nfa2.alphabet - nfa1.alphabet
-            if extra_symbols != set():
-                for pair in product(nfa1.states, extra_symbols):
-                    new_tf[pair] = set()
-            return new_tf
         overlap = self.states & other.states
         while overlap != set():
             other = copy(other)
             overlap = self.states & other.states
-        self_tf = add_empty_transitions(self, other)
-        other_tf = add_empty_transitions(other, self)
-        union_tf = {}
-        union_tf.update(self_tf)
-        union_tf.update(other_tf)
-        union_start_state = self._get_other_state(self.states | other.states)
-        union_tf[(union_start_state, '')] = { self.start_state, other.start_state }
-        for symbol in union_alphabet:
-            union_tf[(union_start_state, symbol)] = set()
-        union_accept_states = self.accept_states | other.accept_states
-        return NFA(union_tf, union_start_state, union_accept_states)
+        def add_empty_transitions(nfa1, nfa2):
+            def add_one_way(nfa1, nfa2):
+                new_tf = nfa1.transition_function.copy()
+                extra_symbols = nfa2.alphabet - nfa1.alphabet
+                if extra_symbols != set():
+                    for pair in product(nfa1.states, extra_symbols):
+                        new_tf[pair] = set()
+                return new_tf
+            return add_one_way(nfa1, nfa2), add_one_way(nfa2, nfa1)
+        self_tf, other_tf = add_empty_transitions(self, other)
+        new_self = NFA(self_tf, self.start_state, self.accept_states)
+        new_other = NFA(other_tf, other.start_state, other.accept_states)
+        return new_self, new_other
 
     def _good_range(self):
         bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
@@ -175,27 +194,27 @@ class NFA(_Base):
             "States {} in the range of the transition function are not in the fsa's state set."
         )
 
-    def _get_successors(self, state_set, symbol):
-        get_successor = lambda state,  s: self.transition_function.get((state, s), set())
+    def _get_successors(self, tf, state_set, symbol):
+        get_successor = lambda state,  s: tf.get((state, s), set())
         return set().union(*[get_successor(state, symbol) for state in state_set])
 
-    def _add_epsilons(self, state_set):
-        epsilon_neighbours = self._get_successors(state_set, '')
+    def _add_epsilons(self, tf, state_set):
+        epsilon_neighbours = self._get_successors(tf, state_set, '')
         while epsilon_neighbours - state_set != set():
             state_set = state_set | epsilon_neighbours
-            epsilon_neighbours = self._get_successors(epsilon_neighbours, '') 
+            epsilon_neighbours = self._get_successors(tf, epsilon_neighbours, '') 
         return state_set
 
-    def _transition(self, state_set, symbol):
-        return self._add_epsilons(self._get_successors(state_set, symbol))
+    def _transition(self, tf, state_set, symbol):
+        return self._add_epsilons(tf, self._get_successors(tf, state_set, symbol))
 
     def accepts(self, string):
         """Determines whether nfa accepts input string. Will raise a ValueError exception is the string contains
         symbols that aren't in the nfa's alphabet."""
         self._check_input(string)
-        current_states = self._add_epsilons({self.start_state})
+        current_states = self._add_epsilons(self.transition_function, {self.start_state})
         for symbol in string:
-            current_states = self._transition(current_states, symbol)
+            current_states = self._transition(self.transition_function, current_states, symbol)
         return False if current_states & self.accept_states == set() else True
 
     def determinize(self):
@@ -213,10 +232,10 @@ class NFA(_Base):
         for (combination, symbol) in product(determinized_states, determinized_alphabet):
             state = frozenset(combination)
             pair = (state, symbol)
-            determinized_tf[pair] = frozenset(self._transition(*pair))
+            determinized_tf[pair] = frozenset(self._transition(self.transition_function, *pair))
             if state & self.accept_states != set():
                 determinized_accept.add(state)
-        determinized_start = frozenset(self._add_epsilons({self.start_state}))
+        determinized_start = frozenset(self._add_epsilons(self.transition_function, {self.start_state}))
         return DFA(determinized_tf, determinized_start, determinized_accept)
 
 
