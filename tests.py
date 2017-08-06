@@ -290,4 +290,23 @@ class TestNFA(unittest.TestCase):
         self.assertFalse(n1_concat_n2.accepts('10100100011010'))
         self.assertFalse(n1_concat_n2.accepts('00111101011010'))
 
+    def test_star(self):
+        tf_5 = {
+            ('q1', '0'): {'q1'},
+            ('q1', '1'): {'q2'},
+            ('q2', '0'): {'q2'},
+            ('q2', '1'): {'q3'},
+            ('q3', '0'): {'q3'},
+            ('q3', '1'): {'q3'}
+        }
+
+        n5 = NFA(tf_5, 'q1', {'q2'})
+        n5_star = n5.star()
+        self.assertTrue(n5.accepts('1000'))
+        self.assertFalse(n5.accepts('10001000'))
+        self.assertFalse(n5.accepts(''))
+        self.assertTrue(n5_star.accepts('1000'))
+        self.assertTrue(n5_star.accepts('10001000'))
+        self.assertTrue(n5_star.accepts(''))
+
 unittest.main()
