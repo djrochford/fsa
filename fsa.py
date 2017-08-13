@@ -1,4 +1,8 @@
 from itertools import product, chain, combinations
+from string import printable
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
 
 class _Base:
 
@@ -127,7 +131,7 @@ class NFA(_Base):
 
         There is no problem with the input NFAs having different alphabets."""
         new_self, new_other, union_tf = self._combine(other)
-        union_start_state = new_self._get_new_state(new_self.states | new_other.states)
+        union_start_state = self._get_new_state(new_self.states | new_other.states)
         union_tf[(union_start_state, '')] = { new_self.start_state, new_other.start_state }
         for symbol in new_self.alphabet | new_other.alphabet:
             union_tf[(union_start_state, symbol)] = set()
@@ -138,10 +142,12 @@ class NFA(_Base):
         """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 + nfa2` returns an nfa that
         recognizes A concat B -- i.e., the language consisten of the set of strins of the form a concat b, where a is an element of A
         and b is an element of B. Note that a this `+` operation is not commutative."""
-
         new_self, new_other, concat_tf = self._combine(other)
         for state in new_self.accept_states:
-            concat_tf[(state, '')] = {new_other.start_state}
+            if (state, '') in concat_tf.keys():
+                concat_tf[(state, '')].add(new_other.start_state)
+            else:
+                concat_tf[(state, '')] = { new_other.start_state }
         return NFA(concat_tf, new_self.start_state, new_other.accept_states)
 
         
@@ -235,6 +241,7 @@ class NFA(_Base):
         determinized_start = frozenset(self._add_epsilons({self.start_state}))
         return DFA(determinized_tf, determinized_start, determinized_accept)
 
+
     def star(self):
         """Let A be the language recognised by nfa. `nfa.self()` returns an nfa that recognizes A* --
         i.e., the set of all strings formed by concatenating any number of members of A."""
@@ -247,6 +254,128 @@ class NFA(_Base):
             star_tf[(state, '')] = { self.start_state }
         star_accepts = self.accept_states | { star_start }
         return NFA(star_tf, star_start, star_accepts)
+
+    @staticmethod
+    def fit(regex, alphabet=set(printable) - {'(', ')', '|', '*'}):
+        """Takes a regular expression and an alphabet (i.e., a set of one-character strings) as input; returns an NFA that recognises
+        the language defined by that regular expression and that alphabet.
+        
+        The alphabet parameter is optional; it's default value is string.printable -- i.e., the set of "printable" characters,
+        which includes the standard ASCII letters and digits, and most common punctuation and white space.
+
+        Actually, that's not quite right -- the default value is string.printable *minus* parentheses, the vertical bar, and the star symbol,
+        for reasons that I will explain presently.
+
+        As of now, the syntax of the regular expressions that this method takes as input is very simple -- much simpler than the
+        standard python regular expresssions. All characters are intepreted as literals for symbols in the alphabet except for `(`, `)`,
+        `|` and `*` and `•`. These all mean what you expect them to mean if you have some familiarity with regular expressions as written in
+        programming languages, except maybe for `•`, which is the concatenation symbol. You can leave concatentation implicit, as is usual;
+        no need to write `•` explicitly.
+
+        In the absence of parentheses, the order of operations is: `*`, then `•`, then `|`.
+
+        I realise the simplicity of the allowed syntax is lame; some day it might be better.
+
+        For reaons related to the above, the characters '(', ')', '|', '*', and '•' cannot be symbols in the alphabet of the NFA.
+
+        The algorithm uses a version of Dijkstra's shunting yard algorithm to parse the regex.
+        """
+        operators = ['sentinel', '|', '•', '*']
+        parentheses = ['(', ')']
+        not_symbols = operators + parentheses
+
+        operator_to_operation = {
+            '|': NFA.__or__,
+            '•': NFA.__add__
+        }        
+
+        NFA._error_message(NFA,
+            set(not_symbols) & set(alphabet),
+            "Alphabet cannot contain character {}.",
+            "Alphabet cannot contain characters {}."
+        )
+
+        def fit_empty(empty):
+            tf = {}
+            for pair in product({'q1'}, alphabet):
+                tf[pair] = set()
+            accept_states = set() if empty == set() else {'q1'}
+            return NFA(tf, 'q1', accept_states)
+
+        def fit_symbol(symbol):
+            tf = {}
+            for pair in product({'q1', 'q2'}, alphabet):
+                tf[pair] = set()
+            tf[('q1', symbol)] = {'q2'}
+            return NFA(tf, 'q1', {'q2'})
+
+        def pre_process(regex):
+            first_char = regex[0]
+            if first_char in operators:
+                raise ValueError("Regex cannot start with '{}'.".format(first_char))
+            processed = ''
+            paren_count = 0
+            for char in regex:
+                if char in alphabet or char == '(':
+                    if len(processed) > 0:
+                        processed += '•' if processed[-1] not in {'(', '|'} else ''
+                if char not in alphabet and char not in operators and char not in parentheses:
+                    raise ValueError("Regex contains character '{}' that is not in alphabet, not an operator and not a parenthesis.".format(char))
+                if char in operators and len(processed) > 0:
+                    if processed[-1] in {'|', '•'}:
+                        raise ValueError("Regex contains binary operator followed by an operator; not cool.")
+                if char == '(':
+                    paren_count += 1
+                if char == ')':
+                    paren_count -= 1
+                if paren_count < 0:
+                    raise ValueError("Right parenthesis occurs in regex withour matching left parenthesis.")
+                processed += char
+            if paren_count > 0:
+                raise ValueError("Left parenthesis occurs in regex without matching right parenthesis.")
+            return processed
+
+        
+        machine_stack = []
+        operator_stack = ['sentinel']
+        
+        def binary_operate():
+            right_operand = machine_stack.pop()
+            left_operand = machine_stack.pop()
+            machine = operator_to_operation[operator_stack.pop()](left_operand, right_operand)
+            machine_stack.append(machine)
+
+        if regex == set() or regex == '':
+            machine = fit_empty(regex)
+        else:
+            regex = pre_process(regex)
+            for char in regex:
+                if char in alphabet:
+                    machine_stack.append(fit_symbol(char))
+                elif char == '*':
+                    machine_stack[-1] = machine_stack[-1].star()
+                elif char in operators:
+                    compare = lambda operator: operators.index(operator) - operators.index(operator_stack[-1])
+                    if operator_stack[-1] in parentheses or compare(char) > 0:
+                        operator_stack.append(char)
+                    else:
+                        while operator_stack[-1] not in parentheses and compare(char) <= 0:
+                           binary_operate()
+                        operator_stack.append(char)
+                elif char == '(':
+                    operator_stack.append(char)
+                else:
+                    while operator_stack[-1] != '(':
+                        binary_operate()
+                    operator_stack.pop()
+            while len(operator_stack) > 1:
+                if operator_stack[-1] == '*':
+                    operator_stack.pop()
+                    machine_stack[-1] = machine_stack[-1].star()
+                else:
+                    binary_operate()
+            machine = machine_stack.pop()
+        return machine
 
 
 class DFA(_Base):

@@ -309,4 +309,62 @@ class TestNFA(unittest.TestCase):
         self.assertTrue(n5_star.accepts('10001000'))
         self.assertTrue(n5_star.accepts(''))
 
+    def test_fit(self):
+        bad_alphabet_message = "Alphabet cannot contain characters"#('*', '•'|'•', '*')." 
+        #When the end of the error message is included above, it fails for no good reason that I can discern.
+        bad_start_message = "Regex cannot start with '|'."
+        bad_regex_character_message = "Regex contains character '¢' that is not in alphabet, not an operator and not a parenthesis."
+        bad_regex_operator_message = "Regex contains binary operator followed by an operator; not cool."
+        bad_regex_right_parenthesis_message = "Right parenthesis occurs in regex withour matching left parenthesis."
+        bad_regex_left_parenthesis_message = "Left parenthesis occurs in regex without matching right parenthesis."
+
+        with self.assertRaisesRegex(ValueError, bad_alphabet_message):
+            NFA.fit('(a|b)*c', {'a', 'b', 'c', '•', '*'})
+        with self.assertRaisesRegex(ValueError, bad_start_message):
+            NFA.fit('|aabbb0')
+        with self.assertRaisesRegex(ValueError, bad_regex_character_message):
+            NFA.fit('9*l¢k')
+        with self.assertRaisesRegex(ValueError, bad_regex_operator_message):
+            NFA.fit('po|*k')
+        with self.assertRaisesRegex(ValueError, bad_regex_right_parenthesis_message):
+            NFA.fit('z•o|o*p)')
+        with self.assertRaisesRegex(ValueError, bad_regex_left_parenthesis_message):
+            NFA.fit('pl((*|p)•q')
+
+        fitted_1 = NFA.fit(set())
+        self.assertFalse(fitted_1.accepts(''))
+        self.assertFalse(fitted_1.accepts('abcb'))
+
+        fitted_2 = NFA.fit('')
+        self.assertTrue(fitted_2.accepts(''))
+        self.assertFalse(fitted_2.accepts('dff&p'))
+
+        fitted_3 = NFA.fit('ad0!!')
+        self.assertTrue(fitted_3.accepts('ad0!!'))
+        self.assertFalse(fitted_3.accepts('ad0!'))
+
+        fitted_4 = NFA.fit('a|b')
+        self.assertFalse(fitted_4.accepts(''))
+        self.assertTrue(fitted_4.accepts('a'))
+        self.assertTrue(fitted_4.accepts('b'))
+        self.assertFalse(fitted_4.accepts('c'))
+        self.assertFalse(fitted_4.accepts('aa'))
+
+        fitted_5 = NFA.fit('(ab)*')
+        self.assertTrue(fitted_5.accepts(''))
+        self.assertFalse(fitted_5.accepts('b'))
+        self.assertTrue(fitted_5.accepts('ab'))
+        self.assertTrue(fitted_5.accepts('ababababababab'))
+        self.assertFalse(fitted_5.accepts('ababababababa'))
+
+        fitted_6 = NFA.fit('b*a(d*|(aaa))4')
+        self.assertFalse(fitted_6.accepts(''))
+        self.assertTrue(fitted_6.accepts('a4'))
+        self.assertTrue(fitted_6.accepts('bad4'))
+        self.assertTrue(fitted_6.accepts('bbbbbaaaa4'))
+        self.assertTrue(fitted_6.accepts('bbbbadddddd4'))
+        self.assertFalse(fitted_6.accepts('bdddd4'))
+        self.assertFalse(fitted_6.accepts('adaaa4'))
+        self.assertFalse(fitted_6.accepts('bbaaa4'))
+
 unittest.main()
