@@ -274,15 +274,19 @@ class NFA(_Base):
         programming languages, except maybe for `•`, which is the concatenation symbol. You can leave concatentation implicit, as is usual;
         no need to write `•` explicitly.
 
+        For reaons related to the above, the characters '(', ')', '|', '*', and '•' cannot be symbols in the alphabet of the NFA.
+
         In the absence of parentheses, the order of operations is: `*`, then `•`, then `|`.
 
         I realise the simplicity of the allowed syntax is lame; some day it might be better.
 
-        For reaons related to the above, the characters '(', ')', '|', '*', and '•' cannot be symbols in the alphabet of the NFA.
-
         The method uses a version of Dijkstra's shunting yard algorithm to parse the regex and build the NFA.
 
-        The method
+        The method will raise a ValueError exception if any of the following conditions hold:
+            1. the alphabet contains any of the verboten characters -- i.e.,`(`, `)`, `|`, `*` and `•`,
+            2. the input regex string contains a character not in the alphabet, and not one of the above veboten characters,
+            3. the input regex contain a binary operator followed by an operator, or
+            4. the input regex does not have properly matching parentheses.
         """
         operators = ['sentinel', '|', '•', '*']
         parentheses = ['(', ')']
