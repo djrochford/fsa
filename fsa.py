@@ -93,6 +93,8 @@ class _Base:
     def get_accept_states(self):
         return self.accept_states.copy()
 
+# class _GNFA(_Base):
+
 
 class NFA(_Base):
     """A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state 
@@ -278,7 +280,9 @@ class NFA(_Base):
 
         For reaons related to the above, the characters '(', ')', '|', '*', and '•' cannot be symbols in the alphabet of the NFA.
 
-        The algorithm uses a version of Dijkstra's shunting yard algorithm to parse the regex.
+        The method uses a version of Dijkstra's shunting yard algorithm to parse the regex and build the NFA.
+
+        The method
         """
         operators = ['sentinel', '|', '•', '*']
         parentheses = ['(', ')']
@@ -303,9 +307,7 @@ class NFA(_Base):
             return NFA(tf, 'q1', accept_states)
 
         def fit_symbol(symbol):
-            tf = {}
-            for pair in product({'q1', 'q2'}, alphabet):
-                tf[pair] = set()
+            tf = { pair: set() for pair in product({'q1', 'q2'}, alphabet) }
             tf[('q1', symbol)] = {'q2'}
             return NFA(tf, 'q1', {'q2'})
 
@@ -321,9 +323,8 @@ class NFA(_Base):
                         processed += '•' if processed[-1] not in {'(', '|'} else ''
                 if char not in alphabet and char not in operators and char not in parentheses:
                     raise ValueError("Regex contains character '{}' that is not in alphabet, not an operator and not a parenthesis.".format(char))
-                if char in operators and len(processed) > 0:
-                    if processed[-1] in {'|', '•'}:
-                        raise ValueError("Regex contains binary operator followed by an operator; not cool.")
+                if char in operators and processed[-1] in {'|', '•'}:
+                    raise ValueError("Regex contains binary operator followed by an operator; not cool.")
                 if char == '(':
                     paren_count += 1
                 if char == ')':
@@ -440,12 +441,16 @@ class DFA(_Base):
         )
 
     def accepts(self, string):
-        """Determines whether dfa accepts input string. Will raise a ValueError exception is the string contains
-        symbols that aren't in the dfa's alphabet."""
+        """Determines whether DFA accepts input string. Will raise a ValueError exception is the string contains
+        symbols that aren't in the DFA's alphabet."""
         self._check_input(string)
         current_state = self.start_state
         for symbol in string:
             current_state = self.transition_function[(current_state, symbol)]
         return False if current_state not in self.accept_states else True
 
-
+    def non_determinize(self):
+        """Convenience method that takes a DFA instance and returns an NFA instance. From the user perspective, the only difference is that
+        domain of the transition_function is a set of singleton sets of states, rather than a set of states."""
+        nd_transition_function = {key: {value} for key, value in self.transition_function.items()}
+        return NFA(nd_transition_function, self.start_state, self.accept_states)

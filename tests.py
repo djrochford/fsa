@@ -119,6 +119,16 @@ class TestDFA(unittest.TestCase):
         self.assertTrue(m1_union_m5.accepts('22*12'))
         self.assertFalse(m1_union_m5.accepts('0101000'))
 
+    def test_non_determinize(self):
+        non_determinstic = self.m5.non_determinize()
+        self.assertIsInstance(non_determinstic, NFA)
+        self.assertTrue(self.m5.accepts(''))
+        self.assertTrue(self.m5.accepts('*'))
+        self.assertTrue(self.m5.accepts('01022202'))
+        self.assertTrue(self.m5.accepts('22*00'))
+        self.assertFalse(self.m5.accepts('2101112'))
+        self.assertFalse(self.m5.accepts('02121*1'))
+
 class TestNFA(unittest.TestCase):
 
     def setUp(self):
