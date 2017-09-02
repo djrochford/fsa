@@ -93,7 +93,73 @@ class _Base:
     def get_accept_states(self):
         return self.accept_states.copy()
 
-# class _GNFA(_Base):
+
+class _GNFA:
+    def __init__(self, transition_function, body_states, start_state, accept_state):
+        self.transition_function = transition_function
+        self.body_states = body_states
+        self.start_state = start_state
+        self.accept_state = accept_state
+        self.states = self.body_states | {self.start_state} | {self.accept_state}
+
+
+    def reduce(self):
+        def union_main_scope(regex):
+            paren_count = 0
+            for char in regex:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+                elif char == '|':
+                    if paren_count == 0:
+                        return True
+            return False
+
+        def regex_star(regex): 
+            if regex == 'Ø' or regex == '€':
+                return_value = '€'
+            elif len(regex) == 1:
+                return_value = regex + '*'
+            else: 
+                return_value = "({})*".format(regex)
+            return return_value
+
+        def regex_concat(regex1, regex2):
+            if regex1 == 'Ø' or regex2 == 'Ø':
+                return_value = 'Ø'
+            elif regex1 == '€':
+                return_value = regex2
+            elif regex2 == '€':
+                return_value = regex1
+            else:
+                if union_main_scope(regex1):
+                    regex1 = '({})'.format(regex1)
+                if union_main_scope(regex2):
+                    regex2 = '({})'.format(regex2)
+                return_value = regex1 + regex2
+            return return_value
+
+        def regex_union(regex1, regex2):
+            if regex1 == "Ø":
+                return_value = regex2
+            elif regex2 == "Ø":
+                return_value = regex1
+            else:
+                return_value = "{}|{}".format(regex1, regex2)
+            return return_value
+
+        rip = self.body_states.pop()
+        r2 = self.transition_function[(rip, rip)]
+        reduced_tf = {}
+        for state1 in self.states - {self.accept_state, rip}:
+            r1 = self.transition_function[(state1, rip)]
+            for state2 in self.states - {self.start_state, rip}:
+                r3 = self.transition_function[(rip, state2)]
+                r4 = self.transition_function[(state1, state2)]
+                new_regex = regex_union(regex_concat(regex_concat(r1, regex_star(r2)), r3), r4)
+                reduced_tf[(state1, state2)] = new_regex
+        return _GNFA(reduced_tf, self.body_states - {rip}, self.start_state, self.accept_state)
 
 
 class NFA(_Base):
@@ -120,10 +186,10 @@ class NFA(_Base):
         2. the set of accept states is not a subset of the set of states inferred from the transition function;
         3. a member of the alphabet inferred from the transition function is not a one-character string;
         4. a member of the transition function's range is not a set;
-        5. the range of the transition function is not a subset of the power set of states inferred from the transition function.
-        6. The transition function is missing cases -- i.e., it is not the case that every pair of a state and a symbol
+        5. the range of the transition function is not a subset of the power set of states inferred from the transition function;
+        6. the transition function is missing cases -- i.e., it is not the case that every pair of a state and a symbol
         is in the domain of the transition function.
-    The exception message will specify which of these four conditions things triggered the exception, and which states/symbols
+    The exception message will specify which of these six conditions things triggered the exception, and which states/symbols
     are the source of the problem."""
 
     def __or__(self, other):
@@ -224,7 +290,9 @@ class NFA(_Base):
 
     def determinize(self):
         """Returns a DFA that recognizes the same same language as the NFA instance.
-        The set of DFA states is the power-set of the set of NFA states."""
+        WARNING: The set of DFA states is the power-set of the set of NFA states. For related reasons,
+        the time complexity of this method is exponential in the number of states of the NFA. 
+        Don't determinize big NFAs."""
         #powerset code an itertools recipe, from https://docs.python.org/3/library/itertools.html#recipes
         #(minor adjustment made to make the result a set)
         def powerset(iterable):
@@ -265,16 +333,21 @@ class NFA(_Base):
         The alphabet parameter is optional; it's default value is string.printable -- i.e., the set of "printable" characters,
         which includes the standard ASCII letters and digits, and most common punctuation and white space.
 
-        Actually, that's not quite right -- the default value is string.printable *minus* parentheses, the vertical bar, and the star symbol,
-        for reasons that I will explain presently.
+        Actually, that's not quite right -- the default value is string.printable *minus* parentheses, the vertical bar, the star symbol,
+        and thr tilde, for reasons that I will explain presently.
 
         As of now, the syntax of the regular expressions that this method takes as input is very simple -- much simpler than the
-        standard python regular expresssions. All characters are intepreted as literals for symbols in the alphabet except for `(`, `)`,
-        `|` and `*` and `•`. These all mean what you expect them to mean if you have some familiarity with regular expressions as written in
-        programming languages, except maybe for `•`, which is the concatenation symbol. You can leave concatentation implicit, as is usual;
-        no need to write `•` explicitly.
+        standard python regular expresssions. All characters are intepreted as literals for symbols in the alphabet except for '(', '')',
+        '|', '*', '•', '€' and 'Ø'. The parentheses, vertical bar and star mean what you'd expect them to mean if you are familiar with 
+        regular expressions as written in programming languages. '•' (option-8 on a mac keyboard) means concatenation. 
+        You can leave concatentation implicit, as is usual; no need to write '•'' explicitly if you don't want to. But it gets used internally. 
+        '€' (option-shift-2) is used to match the empty string (because it kind of looks like an epsilon); there's no other way to match, 
+        for instance, {'', '0'} with the current syntax. (Quick challenge: it's not totally obvious how to match the empty string in normal python regex syntax either, 
+        though it can be done; give it a go.) 'Ø' (option-shift-o) represents the empty set; you can match to the empty language with it.
 
-        For reaons related to the above, the characters '(', ')', '|', '*', and '•' cannot be symbols in the alphabet of the NFA.
+        For reaons related to the above, the characters '(', ')', '|', '*', '•', '€' and 'Ø' cannot be symbols in the alphabet of the NFA.
+        (My apologies to speakers of Scandinavian languages for the last one; I am very against English chauvinism, but your letter is so very
+        close to the empty-set symbol. If, by some miracle, there is someone who cares about this, I will change the symbol for empty-set.)
 
         In the absence of parentheses, the order of operations is: `*`, then `•`, then `|`.
 
@@ -283,14 +356,15 @@ class NFA(_Base):
         The method uses a version of Dijkstra's shunting yard algorithm to parse the regex and build the NFA.
 
         The method will raise a ValueError exception if any of the following conditions hold:
-            1. the alphabet contains any of the verboten characters -- i.e.,`(`, `)`, `|`, `*` and `•`,
+            1. the alphabet contains any of the verboten characters -- i.e.,`(`, `)`, `|`, `*`, `•`, `€` and `Ø`,
             2. the input regex string contains a character not in the alphabet, and not one of the above veboten characters,
             3. the input regex contain a binary operator followed by an operator, or
             4. the input regex does not have properly matching parentheses.
         """
         operators = ['sentinel', '|', '•', '*']
         parentheses = ['(', ')']
-        not_symbols = operators + parentheses
+        empties = ['€', 'Ø']
+        not_symbols = operators + parentheses + empties
 
         operator_to_operation = {
             '|': NFA.__or__,
@@ -304,10 +378,8 @@ class NFA(_Base):
         )
 
         def fit_empty(empty):
-            tf = {}
-            for pair in product({'q1'}, alphabet):
-                tf[pair] = set()
-            accept_states = set() if empty == set() else {'q1'}
+            tf = {pair: set() for pair in product({'q1'}, alphabet)}
+            accept_states = set() if empty == 'Ø' else {'q1'}
             return NFA(tf, 'q1', accept_states)
 
         def fit_symbol(symbol):
@@ -325,8 +397,8 @@ class NFA(_Base):
                 if char in alphabet or char == '(':
                     if len(processed) > 0:
                         processed += '•' if processed[-1] not in {'(', '|'} else ''
-                if char not in alphabet and char not in operators and char not in parentheses:
-                    raise ValueError("Regex contains character '{}' that is not in alphabet, not an operator and not a parenthesis.".format(char))
+                if char not in alphabet and char not in not_symbols:
+                    raise ValueError("Regex contains character '{}' that is not in alphabet and not an accepted regex character.".format(char))
                 if char in operators and processed[-1] in {'|', '•'}:
                     raise ValueError("Regex contains binary operator followed by an operator; not cool.")
                 if char == '(':
@@ -350,36 +422,31 @@ class NFA(_Base):
             machine = operator_to_operation[operator_stack.pop()](left_operand, right_operand)
             machine_stack.append(machine)
 
-        if regex == set() or regex == '':
-            machine = fit_empty(regex)
-        else:
-            regex = pre_process(regex)
-            for char in regex:
-                if char in alphabet:
-                    machine_stack.append(fit_symbol(char))
-                elif char == '*':
-                    machine_stack[-1] = machine_stack[-1].star()
-                elif char in operators:
-                    compare = lambda operator: operators.index(operator) - operators.index(operator_stack[-1])
-                    if operator_stack[-1] in parentheses or compare(char) > 0:
-                        operator_stack.append(char)
-                    else:
-                        while operator_stack[-1] not in parentheses and compare(char) <= 0:
-                           binary_operate()
-                        operator_stack.append(char)
-                elif char == '(':
+        regex = pre_process(regex)
+        for char in regex:
+            if char == 'Ø' or char == '€':
+                machine_stack.append(fit_empty(char))
+            elif char in alphabet:
+                machine_stack.append(fit_symbol(char))
+            elif char == '*':
+                machine_stack[-1] = machine_stack[-1].star()
+            elif char in operators:
+                compare = lambda operator: operators.index(operator) - operators.index(operator_stack[-1])
+                if operator_stack[-1] in parentheses or compare(char) > 0:
                     operator_stack.append(char)
                 else:
-                    while operator_stack[-1] != '(':
-                        binary_operate()
-                    operator_stack.pop()
-            while len(operator_stack) > 1:
-                if operator_stack[-1] == '*':
-                    operator_stack.pop()
-                    machine_stack[-1] = machine_stack[-1].star()
-                else:
+                    while operator_stack[-1] not in parentheses and compare(char) <= 0:
+                       binary_operate()
+                    operator_stack.append(char)
+            elif char == '(':
+                operator_stack.append(char)
+            else:
+                while operator_stack[-1] != '(':
                     binary_operate()
-            machine = machine_stack.pop()
+                operator_stack.pop()
+        while len(operator_stack) > 1:
+            binary_operate()
+        machine = machine_stack.pop()
         return machine
 
 
@@ -397,11 +464,11 @@ class DFA(_Base):
     The class will raise a ValueError exception on instantiation if any of the following are true:
         1. the start state is not a member of the set of states inferred from the transition function;
         2. the set of accept states is not a subset of the set of states inferred from the transition function;
-        3. the range of the transition function is not a subset of the set of states inferred from the transition function.
-        4. A member of the alphabet inferred from the transition function is not a one-character string.
-        5. The transition function is missing a case -- i.e., it is not the case that every pair of a state and a symbol
+        3. the range of the transition function is not a subset of the set of states inferred from the transition function;
+        4. a member of the alphabet inferred from the transition function is not a one-character string;
+        5. the transition function is missing a case -- i.e., it is not the case that every pair of a state and a symbol
         is in the domain of the transition function.
-    The exception message will specify which of these four conditions things triggered the exception, and which states/symbols
+    The exception message will specify which of these five conditions things triggered the exception, and which states/symbols
     are the source of the problem."""
 
     def __or__(self, other):
@@ -435,6 +502,31 @@ class DFA(_Base):
         union_accept_states = set(product(self.accept_states, other_states)) | set(product(self_states, other.accept_states))
         return DFA(union_transition_function, union_start_state, union_accept_states)
 
+    def __add__(self, other):
+        """Let A be the language recognised by dfa1, B be the language recognised by dfa2. `dfa1 + dfa2` returns
+        a DFA that recognises the set of all concatenations of strings in A with strings in B.
+        This DFA method is parasitic on the NFA method; it converts the input DFAs into NFAs, uses the NFA '+', then
+        converts the result back to a DFA."""
+        return (self.non_determinize() + other.non_determinize()).determinize()
+
+    def _gnfize(self):
+        gnfa_tf = {}
+        for state1, symbol in self.transition_function.keys():
+            state2 = self.transition_function[(state1, symbol)]
+            if (state1, state2) in gnfa_tf.keys():
+                gnfa_tf[(state1, state2)] += '|' + symbol
+            else:
+                gnfa_tf[(state1, state2)] = symbol
+        gnfa_start = self._get_new_state(self.states)
+        gnfa_accept = self._get_new_state(self.states | {gnfa_start})
+        gnfa_tf[(gnfa_start, self.start_state)] = '€'
+        for state in self.accept_states:
+            gnfa_tf[(state, gnfa_accept)] = '€'
+        for state1, state2 in product(self.states | {gnfa_start}, self.states | {gnfa_accept}):
+            if not (state1, state2) in gnfa_tf.keys():
+                gnfa_tf[(state1, state2)] = 'Ø'
+        return _GNFA(gnfa_tf, self.states, gnfa_start, gnfa_accept)
+
     def _good_range(self):
         transition_range = set(self.transition_function.values())
         bad_range = transition_range - self.states
@@ -453,8 +545,18 @@ class DFA(_Base):
             current_state = self.transition_function[(current_state, symbol)]
         return False if current_state not in self.accept_states else True
 
+    def encode(self):
+        """Let A be the language accepted by dfa. `dfa.encode()` returns a regex string that defines A.
+        That regex string is liable to be much more complicated than necessary; maybe I'll figure out 
+        how to improve on average simplicity, eventually."""
+        gnfa = self._gnfize()
+        while len(gnfa.states) > 2:
+            gnfa = gnfa.reduce()
+        return gnfa.transition_function[(gnfa.start_state, gnfa.accept_state)]
+
     def non_determinize(self):
         """Convenience method that takes a DFA instance and returns an NFA instance. From the user perspective, the only difference is that
         domain of the transition_function is a set of singleton sets of states, rather than a set of states."""
         nd_transition_function = {key: {value} for key, value in self.transition_function.items()}
         return NFA(nd_transition_function, self.start_state, self.accept_states)
+

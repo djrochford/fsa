@@ -129,6 +129,21 @@ class TestDFA(unittest.TestCase):
         self.assertFalse(self.m5.accepts('2101112'))
         self.assertFalse(self.m5.accepts('02121*1'))
 
+    def test_encode(self):
+        tf = {
+            (1, 'a'): 2,
+            (1, 'b'): 3,
+            (2, 'a'): 1,
+            (2, 'b'): 2,
+            (3, 'a'): 2,
+            (3, 'b'): 1
+        }
+        M = DFA(tf, 1, {2, 3})
+        self.assertEqual(M.encode(),
+            '(a(aa|b)*ab|b)((ba|a)(aa|b)*ab|bb)*((ba|a)(aa|b)*|€)|a(aa|b)*'
+        )
+
+
 class TestNFA(unittest.TestCase):
 
     def setUp(self):
@@ -323,7 +338,7 @@ class TestNFA(unittest.TestCase):
         bad_alphabet_message = "Alphabet cannot contain characters"#('*', '•'|'•', '*')." 
         #When the end of the error message is included above, it fails for no good reason that I can discern.
         bad_start_message = "Regex cannot start with '|'."
-        bad_regex_character_message = "Regex contains character '¢' that is not in alphabet, not an operator and not a parenthesis."
+        bad_regex_character_message = "Regex contains character '¢' that is not in alphabet and not an accepted regex character."
         bad_regex_operator_message = "Regex contains binary operator followed by an operator; not cool."
         bad_regex_right_parenthesis_message = "Right parenthesis occurs in regex withour matching left parenthesis."
         bad_regex_left_parenthesis_message = "Left parenthesis occurs in regex without matching right parenthesis."
@@ -341,11 +356,11 @@ class TestNFA(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, bad_regex_left_parenthesis_message):
             NFA.fit('pl((*|p)•q')
 
-        fitted_1 = NFA.fit(set())
+        fitted_1 = NFA.fit('Ø')
         self.assertFalse(fitted_1.accepts(''))
         self.assertFalse(fitted_1.accepts('abcb'))
 
-        fitted_2 = NFA.fit('')
+        fitted_2 = NFA.fit('€')
         self.assertTrue(fitted_2.accepts(''))
         self.assertFalse(fitted_2.accepts('dff&p'))
 
@@ -367,7 +382,7 @@ class TestNFA(unittest.TestCase):
         self.assertTrue(fitted_5.accepts('ababababababab'))
         self.assertFalse(fitted_5.accepts('ababababababa'))
 
-        fitted_6 = NFA.fit('b*a(d*|(aaa))4')
+        fitted_6 = NFA.fit('b*a(d*|aaa)4')
         self.assertFalse(fitted_6.accepts(''))
         self.assertTrue(fitted_6.accepts('a4'))
         self.assertTrue(fitted_6.accepts('bad4'))
