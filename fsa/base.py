@@ -63,8 +63,8 @@ class _Base:
             else:
                 raise ValueError(message_plural.format((", ").join(quoted_members)))
 
-    def _check_input(self, string):
-        bad_symbols = set(list(string)) - self.alphabet
+    def _check_input(self, string, alphabet):
+        bad_symbols = set(list(string)) - alphabet
         self._error_message(
             bad_symbols,
             "Symbol {} not in fsa's alphabet",

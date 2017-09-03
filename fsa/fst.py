@@ -22,3 +22,13 @@ class FST(_Base):
             "State {} in the range of the transition function is not in the fsa's state set.",
             "States {} in the range of the transition function are not in the fsa's state set."
         )
+
+    def process(self, string):
+        self._check_input(string, self.input_alphabet)
+        current_state = self.start_state
+        output = ''
+        for input_symbol in string:
+            (next_state, output_symbol) = self.transition_function[(current_state, input_symbol)]
+            output += output_symbol
+            current_state = next_state
+        return output 

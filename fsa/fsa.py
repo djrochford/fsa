@@ -190,7 +190,7 @@ class NFA(_Base):
     def accepts(self, string):
         """Determines whether nfa accepts input string. Will raise a ValueError exception is the string contains
         symbols that aren't in the nfa's alphabet."""
-        self._check_input(string)
+        self._check_input(string, self.alphabet)
         current_states = self._add_epsilons({self.start_state})
         for symbol in string:
             current_states = self._transition(current_states, symbol)
@@ -447,7 +447,7 @@ class DFA(_Base):
     def accepts(self, string):
         """Determines whether DFA accepts input string. Will raise a ValueError exception is the string contains
         symbols that aren't in the DFA's alphabet."""
-        self._check_input(string)
+        self._check_input(string, self.alphabet)
         current_state = self.start_state
         for symbol in string:
             current_state = self.transition_function[(current_state, symbol)]

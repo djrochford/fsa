@@ -448,4 +448,8 @@ class TestFST(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, bad_domain_msg):
             FST(tf5, 'q1')
 
+    def test_process(self):
+        self.assertEqual(self.t1.process('2212011'), '1111000')
+        self.assertEqual(self.t2.process('abbb'), '1011')
+
 unittest.main()
