@@ -64,7 +64,6 @@ class _Base:
             "Symbols {} not in fsa's alphabet"
         )
 
-
     def get_states(self):
         return self.states.copy()
 

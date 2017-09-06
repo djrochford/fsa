@@ -1,6 +1,27 @@
 from base import _Base
 
 class FST(_Base):
+    """A finite state transducer class. Takes two parameters: a transition function, and a start state, in that order.
+
+    The transition function should be specified as a dictionary with tuple keys and values. 
+    These keys implicitly define the fst's state-set and input alphabet; the first elements of the tuples represent the
+    fst's states, and the second elements are the symbols in the alphabet.
+
+    Similarly, the values should be tuples with the first element a state, the second member a symbol in the output alphabet, and
+    the output alphabet (though not the state set) is implicitly defined by these values.
+
+    The fst expects the symbols of both alphabets to be one character strings. States can be anything hashable. (Note that,
+    for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+
+    The class will raise a ValueError exception on instantiation if any of the following are true:
+        1. the start state is not a member of the set of states inferred from the transition function;
+        2. a member of the input alphabet inferred from the transition function is not a one-character string;
+        3. a member of the output alphabet inferred from the transition function is not a one-character string;
+        4. the range of the transition function is not a subset of the state-set inferred from the transition function;
+        5. the transition function is missing cases -- i.e., it is not the case that every pair of a state and a symbol 
+        in the input alphabet is in the domain of the transition function.
+    The exception message will specify which of these five conditions things triggered the exception, and which states/symbols
+    are the source of the problem."""
     def __init__(self, transition_function, start_state):
         super().__init__(transition_function, start_state)
         self.states, self.input_alphabet = self._extract_states_alphabet(self.transition_function.keys())
@@ -27,6 +48,8 @@ class FST(_Base):
         return self.output_alphabet.copy()
 
     def process(self, string):
+        """This is the main method of the fst class. It takes a string as input, and returns a string as output.
+        Specifically, it returns the string specified by the transition function."""
         self._check_input(string, self.input_alphabet)
         current_state = self.start_state
         output = ''
