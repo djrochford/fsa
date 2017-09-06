@@ -2,6 +2,31 @@ from itertools import product, chain, combinations
 from string import printable
 from base import _Base
 
+class _FSA(_Base):
+    def __init__(self, transition_function, start_state, accept_states):
+        super().__init__(transition_function, start_state)    
+        self.accept_states = accept_states
+        self.states, self.alphabet = self._extract_states_alphabet(self.transition_function.keys())
+        self._well_defined()
+
+    def _well_defined(self):
+        super()._well_defined()
+        self._good_accept()
+        self._good_alphabet(self.alphabet, 'alphabet')
+        self._good_domain(self.alphabet)
+
+    def get_alphabet(self):
+        return self.alphabet.copy()
+
+    def get_accept_states(self):
+        return self.accept_states.copy()
+
+    def _get_new_state(self, state_set):
+        new_state = 'new_state'
+        while new_state in state_set:
+            new_state = new_state + '`'
+        return new_state
+
 class _GNFA:
     def __init__(self, transition_function, body_states, start_state, accept_state):
         self.transition_function = transition_function
@@ -9,7 +34,6 @@ class _GNFA:
         self.start_state = start_state
         self.accept_state = accept_state
         self.states = self.body_states | {self.start_state} | {self.accept_state}
-
 
     def reduce(self):
         def union_main_scope(regex):
@@ -70,7 +94,7 @@ class _GNFA:
         return _GNFA(reduced_tf, self.body_states - {rip}, self.start_state, self.accept_state)
 
 
-class NFA(_Base):
+class NFA(_FSA):
     """A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state 
     and a set of accept states, in that order.
 
@@ -358,7 +382,7 @@ class NFA(_Base):
         return machine
 
 
-class DFA(_Base):
+class DFA(_FSA):
     """A deterministic finite automaton class. Takes three parameters: a transition function, a start state 
     and a set of accept states, in that order.
 
