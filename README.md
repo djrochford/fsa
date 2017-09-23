@@ -5,7 +5,7 @@ This is a work in progress, and far from complete. Comments, requests, suggestio
 
 Note that the terminology used in this package (and many of the test examples) follow the lead of Michael Sipser's excellent *Introduction to the Theory of Computation*.
 
-There are thus far two sub-packages: `fsa` and `cfg`...
+There are thus far two sub-packages: [fsa][#fsa] and [cfg][#cfg]...
 
 ## fsa
 A package for dealing with finite-state automata, and their ilk. There are three classes you import with the fsa sub-package:
