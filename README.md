@@ -71,11 +71,11 @@ The exception message will specify which of these six conditions things triggere
 
 #### Properties
 An NFA instance has the following properties:
-  1. `transition_function`, the transition function of the nfa specified as a dictionary. Equal to the dictionary you passed in on instantiation, if that's how the nfa instance was created;
-  2. `states`, the set of states of the nfa. Inferred from the transition-function parameter on instantiation, if that's how the nfa instance was created;
-  3. `alphabet`, the set of symbols that appear in the language of the nfa. Inferred from the transition-function on instantion, if that's how the nfa instance was created;
-  4. `start_state`, the start state of the nfa. Equal to the start-start parameter you passed in on instantiation, if that's how the dfa instance was created;
-  5. `accept_states`, the set of the nfa's accept-states. Equal to the accept_state parameter you passed in on instantiation, it that's how the dfa instance was created.
+  1. `transition_function`, the transition function of the NFA specified as a dictionary. Equal to the dictionary you passed in on instantiation, if that's how the NFA instance was created;
+  2. `states`, the set of states of the NFA. Inferred from the transition-function parameter on instantiation, if that's how the NFA instance was created;
+  3. `alphabet`, the set of symbols that appear in the language of the NFA. Inferred from the transition-function on instantion, if that's how the nfa instance was created;
+  4. `start_state`, the start state of the NFA. Equal to the start-start parameter you passed in on instantiation, if that's how the NFA instance was created;
+  5. `accept_states`, the set of the nfa's accept-states. Equal to the accept_state parameter you passed in on instantiation, it that's how the NFA instance was created.
 
 Each of the above are accessible using a `get` method, of the form `get_[PROPERTY]`. For example `my_nfa.get_transition_function()` returns a copy of my_nfa's transition function.
 
@@ -111,7 +111,7 @@ The parentheses, vertical bar and star mean what you'd expect them to mean if yo
 
 'Ø' (option-shift-o) represents the empty set; you can match to the empty language with it.
 
-For reaons related to the above, the characters '(', ')', '|', '*', '•', '€' and 'Ø' cannot be symbols in the alphabet of the NFA. (My apologies to speakers of Scandinavian languages for the last one; I am very against English chauvinism, but your letter is so very close to the empty-set symbol. If, by some miracle, there is someone who cares about this, I will change the symbol for empty-set.)
+For reasons related to the above, the characters '(', ')', '|', '\*', '•', '€' and 'Ø' cannot be symbols in the alphabet of the NFA. (My apologies to speakers of Scandinavian languages for the last one; I am very against English chauvinism, but your letter is so very close to the empty-set symbol. If, by some miracle, there is someone who cares about this, I will change the symbol for empty-set.)
 
 In the absence of parentheses, the order of operations is: `*`, then `•`, then `|`.
 
@@ -124,3 +124,33 @@ The method will raise a ValueError exception if any of the following conditions 
   * the input regex string contains a character not in the alphabet, and not one of the above veboten characters,
   * the input regex contain a binary operator followed by an operator, or
   * the input regex does not have properly matching parentheses.
+
+### FST
+A finite-state transducer class. Takes two parameters: a transition function, and a start state, in that order.
+
+The transition function should be specified as a dictionary with tuple keys and values. These keys implicitly define the fst's state-set and input alphabet; the first elements of the tuples represent the fst's states, and the second elements are the symbols in the alphabet.
+
+Similarly, the values should be tuples with the first element a state, the second member a symbol in the output alphabet, and the output alphabet (though not the state set) is implicitly defined by these values.
+
+The fst expects the symbols of both alphabets to be one character strings. States can be anything hashable. (Note that, for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+
+The class will raise a ValueError exception on instantiation if any of the following are true:
+ * the start state is not a member of the set of states inferred from the transition function;
+ * a member of the input alphabet inferred from the transition function is not a one-character string;
+ * a member of the output alphabet inferred from the transition function is not a one-character string;
+ * the states in the range of the transition function are not members of the state-set inferred from the domain of the transition function;
+ * the transition function is missing cases -- i.e., it is not the case that every pair of a state and a symbol in the input alphabet is in the domain of the transition function.
+The exception message will specify which of these five conditions things triggered the exception, and which states/symbols are the source of the problem.
+
+#### Properties
+An FST instance has the following properties:
+ 1. `transition_function`: the FST's transition function, specified as a dictionary. Equal to the dictionary you passed in on instantiation.
+ 2. `states`: the set of the FST's states;
+ 3. `start_state`: the FST's start state;
+ 4. `input_alphabet`: the alphabet of the language the FST accepts as input;
+ 5. `output_alphabet`: the alphabet of the language the FST outputs.
+Each of the above are accessible using a `get` method, of the form `get_[PROPERTY]`. For example `my_fst.get_transition_function()` returns a copy of my_fst's transition function.
+
+#### Mehods
+
+ * `process`: Takes a string as input, and returns a string as output. Specifically, it returns the string that the given FST returns, when given the first string as input.
