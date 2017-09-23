@@ -84,9 +84,9 @@ class CFG:
         return self.terminals.copy()
 
     def chomsky_normalize(self):
-        """The main method of the class. Let cfg be a context-free grammar that generates language L.
+        """Let cfg be a context-free grammar that generates language L.
         `cfg.chomky_normalize()` returns a new CFG instance that also generates L, but is in Chomsky Normal Form --
-        i.e., all possible substitutions are either single terminals or a pair of variables (no empty substitutions).
+        i.e., all possible substitutions of variables are either single terminals or a pair of variables (no empty substitutions).
         
         The resulting grammar is liable to much more complicated than the minimally-complicated, Chomsky-normalized
         grammar that generates L. Maybe some day I'll add some stuff to simplify the result.
