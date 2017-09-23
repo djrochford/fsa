@@ -145,12 +145,47 @@ The exception message will specify which of these five conditions things trigger
 #### Properties
 An FST instance has the following properties:
  1. `transition_function`: the FST's transition function, specified as a dictionary. Equal to the dictionary you passed in on instantiation.
- 2. `states`: the set of the FST's states;
- 3. `start_state`: the FST's start state;
- 4. `input_alphabet`: the alphabet of the language the FST accepts as input;
- 5. `output_alphabet`: the alphabet of the language the FST outputs.
+ 2. `states`: the set of the FST's states. Inferred from the FST's transition_function on instantiation.
+ 3. `start_state`: the FST's start state. Equal to the parameter you passed in on instantiation.
+ 4. `input_alphabet`: the alphabet of the language the FST accepts as input. Inferred from the transition function on instantiation.
+ 5. `output_alphabet`: the alphabet of the language the FST outputs. Inferred from the transition function on instantiation.
 Each of the above are accessible using a `get` method, of the form `get_[PROPERTY]`. For example `my_fst.get_transition_function()` returns a copy of my_fst's transition function.
 
 #### Mehods
 
  * `process`: Takes a string as input, and returns a string as output. Specifically, it returns the string that the given FST returns, when given the first string as input.
+
+## cfg
+
+A package for dealing with context-free grammars. Currently contains just the one class:
+
+### CFG
+A context-free grammar class. Takes two parameters: the grammar's rules, and the start variable, in that order.
+
+The rules should be specified as a dictionary with string keys and set (or frozenset) values. Each member of the set is a possible substitution for that variable; the substitutions should also be strings.
+
+The variables and terminals of the grammar are inferred from the rule dictionary. All keys are assumed to be variables of the grammar; everything that appears in a substitution that isn't a variable is assumed to be a terminal.
+
+You can specify empty substitutions using '€' (opt-shift-2, on a mac). That symbol the closest thing to an epsilon you can access easily from the keyboard.
+
+The class will raise a ValueError exception on instantiation if any of the following are true:
+ * the first (rule) parameter is not a dictionary;
+ * the rule dictionary contains a non-string key;
+ * the rule dictionary contains a value that is neither a set nor a frozenset;
+ * one of the set-values of the rule dictionary has a non-string member;
+ * there are no terminals among the possible susbtitutions;
+ * the start-variable parameter is not one of the variables inferred from the rule dictionary.
+The exception message will specify which of the above conditions triggered the exception, and which variables/terminals were the source of the problem.
+
+#### Properties
+ * `rules`: the rules of the CFG, specified as a dictionary. Equal to the rules parameter you passed in on instantiation, if that's how the CFG instance was created.
+ * `variables`: the variables of the CFG. These are inferred from the rules parameter on instantiation, if that's how the CFG instance was created.
+ * `terminals`: the terminals of the CFG -- i.e., strings in the language that the CFG generates. Inferred from the rules parameter on instantiation, if that's how the CFG instance was created.
+ * `start_variable`: the start variable of the CFG. Equal to the start-variable parameter you passed in on instantiation, if thats how the CFG instance was created.
+Each of the above are accessible using a `get` method, of the form `get_[PROPERTY]`. For example `my_cfg.get_rules()` returns a copy of my_cfg's rules.
+
+#### Methods
+
+* `chomsky_normalize`: Let cfg be a context-free grammar that generates language L. `cfg.chomky_normalize()` returns a new CFG instance that also generates L, but is in Chomsky Normal Form -- i.e., all possible substitutions of variables are either single terminals or a pair of variables (no empty substitutions). 
+
+The resulting grammar is liable to much more complicated than the minimally-complicated, Chomsky-normalized grammar that generates L. Maybe some day I'll add some stuff to simplify the result.
