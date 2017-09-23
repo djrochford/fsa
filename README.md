@@ -7,10 +7,10 @@ Note that the terminology used in this package (and many of the test examples) f
 
 There are thus far two sub-packages: `fsa` and `cfg`...
 
-##fsa
+## fsa
 A package for dealing with finite-state automata, and their ilk. There are three classes you import with the fsa sub-package:
 
-###DFA
+### DFA
 A deterministic finite automaton class. Takes three parameters: a transition function, a start state and a set of accept states, in that order.
 
 The transition function should be specified as a dictionary with tuple keys. These keys implicitly define the dfa's state-set and alphabet; the first elements of the tuples represent the fsa's states, and the second elements are the symbols in the alphabet.
