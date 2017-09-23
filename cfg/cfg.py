@@ -1,6 +1,24 @@
 import re
 
 class CFG:
+    """A context-free grammar class. Takes two parameters: the grammar's rules, and the start variable, in that order.
+
+    The rules should be specified as a dictionary with string keys and set (or frozenset) values. Each member of the set is a possible substitution
+    for that variable; the substitutions should also be strings.
+
+    The variables and terminals of the grammar are inferred from the rule dictionary. All keys are assumed to be variables of the grammar;
+    everything that appears in a substitution that isn't a variable is assumed to be a terminal.
+
+    You can specify empty substitutions using '€' (opt-shift-2, on a mac). That symbol the closest thing to an epsilon you can access easily from the keyboard.
+
+    The class will raise a ValueError exception on instantiation if any of the following are true:
+        1. the first (rule) parameter is not a dictionary;
+        2. the rule dictionary contains a non-string key;
+        3. the rule dictionary contains a value that is neither a set nor a frozenset;
+        4. one of the set-values of the rule dictionary has a non-string member;
+        5. there are no terminals among the possible susbtitutions;
+        6. the start-variable parameter is not one of the variables inferred from the rule dictionary.
+    """
     def __init__(self, rules, start_variable):
         self.rules = rules
         self._check_rules()
@@ -42,7 +60,7 @@ class CFG:
             raise ValueError("Start variable not in the CFG's variable set.")
 
     def _parse_values(self, substitution_set):
-        parse = lambda substitution: set(re.split('|'.join(self.variables), substitution)) - {''}
+        parse = lambda substitution: set(re.split('|'.join(self.variables), substitution)) - {'', '€'}
         return set.union(*map(parse, substitution_set))
 
     def _error_message(self, bad_set, message_singular, message_plural):
@@ -66,6 +84,13 @@ class CFG:
         return self.terminals.copy()
 
     def chomsky_normalize(self):
+        """The main method of the class. Let cfg be a context-free grammar that generates language L.
+        `cfg.chomky_normalize()` returns a new CFG instance that also generates L, but is in Chomsky Normal Form --
+        i.e., all possible substitutions are either single terminals or a pair of variables (no empty substitutions).
+        
+        The resulting grammar is liable to much more complicated than the minimally-complicated, Chomsky-normalized
+        grammar that generates L. Maybe some day I'll add some stuff to simplify the result.
+        """
 
         def get_new_variable(variable_set):
             new_variable = 'V';
@@ -140,9 +165,6 @@ class CFG:
 
         bad_remaining_rules = get_bad_remaining_rules()
         while bad_remaining_rules != set():
-            print(rule_set)
-            print(bad_remaining_rules)
-            print("+++++++++++++++++++")
             for rule in bad_remaining_rules:
                 variable, substitution = rule
                 parsed_substitution = parse_substitution(substitution)
