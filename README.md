@@ -45,7 +45,7 @@ Each of the above are accessible using a `get` method, of the form `get_[PROPERT
 
 * `accepts`: `my_dfa.accepts("some string")` returns `True` if my_dfa accepts "some string", and `False` otherwise. Will raise a ValueError exception is the string contains symbols that aren't in the DFA's alphabet.
 
-* `encode`: Let A be the language accepted by dfa. `dfa.encode()` returns a regex string that generates A. That regex string is liable to be much more complicated than necessary; maybe I'll figure out how to improve on average simplicity, eventually. Note that the regex language I use is much simpler than the standard python regex language (though it is technically equivalent in expressive power). See the `fit` method in the [NFA](#NFA) section.
+* `encode`: Let A be the language accepted by dfa. `dfa.encode()` returns a regex string that generates A. That regex string is liable to be much more complicated than necessary; maybe I'll figure out how to improve on average simplicity, eventually. Note that the regex language I use is much simpler than the standard python regex language (though it is technically equivalent in expressive power). See the `fit` method in the [NFA](#NFA) section for more details.
 
 * `non_determinize`: Convenience method that takes a DFA instance and returns an equivalent NFA instance.
 
