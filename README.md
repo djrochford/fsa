@@ -1,7 +1,7 @@
 # toc
 A python package for doing theory-of-computation related stuff. 
 
-This is a work in progress, and far from complete. Comments, requests, suggestions for improvement are all welcome. Feel free to submit an issue.
+This is a work in progress. Comments, requests, suggestions for improvement are all welcome. Feel free to submit an issue.
 
 Note that the terminology used in this package (and many of the test examples) follow the lead of Michael Sipser's excellent *Introduction to the Theory of Computation*.
 
