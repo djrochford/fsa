@@ -18,6 +18,8 @@ class CFG:
         4. one of the set-values of the rule dictionary has a non-string member;
         5. there are no terminals among the possible susbtitutions;
         6. the start-variable parameter is not one of the variables inferred from the rule dictionary.
+    The exception message will specify which of the above conditions triggered the exception, and which variables/terminals
+    were the source of the problem.
     """
     def __init__(self, rules, start_variable):
         self.rules = rules
@@ -103,6 +105,7 @@ class CFG:
         removed_rules = set()
         rule_variables = {v for v, s in rule_set}
         rule_substitutions = {s for v, s in rule_set}
+
         while rule_substitutions & (rule_variables | {'€'}) != set():
             for rule in list(rule_set):
                 variable, substitution = rule

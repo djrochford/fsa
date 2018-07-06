@@ -48,7 +48,7 @@ class FST(_Base):
         return self.output_alphabet.copy()
 
     def process(self, string):
-        """This is the main method of the fst class. It takes a string as input, and returns a string as output.
+        """Takes a string as input, and returns a string as output.
         Specifically, it returns the string specified by the transition function."""
         self._check_input(string, self.input_alphabet)
         current_state = self.start_state
