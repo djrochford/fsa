@@ -1,5 +1,5 @@
 import unittest
-from cfg import CFG
+from ..cfg import CFG
 
 class TestCFG(unittest.TestCase):
 
@@ -70,4 +70,5 @@ class TestCFG(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, bad_start_msg):
             CFG(self.rules1, '#')
 
-unittest.main()
+if __name__ == '__main__':
+    unittest.main()

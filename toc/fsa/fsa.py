@@ -1,6 +1,6 @@
 from itertools import product, chain, combinations
 from string import printable
-from base import _Base
+from .base import _Base
 
 class _FSA(_Base):
     def __init__(self, transition_function, start_state, accept_states):

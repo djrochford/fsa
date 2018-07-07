@@ -1,4 +1,4 @@
-from base import _Base
+from .base import _Base
 
 class FST(_Base):
     """A finite state transducer class. Takes two parameters: a transition function, and a start state, in that order.

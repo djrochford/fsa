@@ -1,6 +1,6 @@
 import unittest
-from fsa import DFA, NFA
-from fst import FST
+from ..fsa import DFA, NFA
+from ..fst import FST
 
 class TestDFA(unittest.TestCase):
 
@@ -452,4 +452,5 @@ class TestFST(unittest.TestCase):
         self.assertEqual(self.t1.process('2212011'), '1111000')
         self.assertEqual(self.t2.process('abbb'), '1011')
 
-unittest.main()
+if __name__ == '__main__':
+    unittest.main()
