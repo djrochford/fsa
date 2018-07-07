@@ -383,20 +383,20 @@ class NFA(_FSA):
 
 
 class DFA(_FSA):
-"""A deterministic finite automaton class. Takes three parameters: a transition function, a start state and a set of accept states, in that order.
+    """A deterministic finite automaton class. Takes three parameters: a transition function, a start state and a set of accept states, in that order.
 
-The transition function should be specified as a dictionary with tuple keys. These keys implicitly define the dfa's state-set and alphabet; the first elements of the tuples represent the fsa's states, and the second elements are the symbols in the alphabet.
+    The transition function should be specified as a dictionary with tuple keys. These keys implicitly define the dfa's state-set and alphabet; the first elements of the tuples represent the fsa's states, and the second elements are the symbols in the alphabet.
 
-The dfa expects the symbols of the alphabet to be one character strings. States can be anything hashable. (Note that, for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+    The dfa expects the symbols of the alphabet to be one character strings. States can be anything hashable. (Note that, for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
 
-The class will raise a ValueError exception on instantiation if any of the following are true:
-  * the start state is not a member of the set of states inferred from the transition function;
-  * the set of accept states is not a subset of the set of states inferred from the transition function;
-  * the range of the transition function is not a subset of the set of states inferred from the transition function;
-  * a member of the alphabet inferred from the transition function is not a one-character string;
-  * the transition function is missing a case -- i.e., it is not the case that every pair of a state and a symbol is in the domain of the transition function.
-The exception message will specify which of these above conditions things triggered the exception, and which states/symbols are the source of the problem."""
-    
+    The class will raise a ValueError exception on instantiation if any of the following are true:
+      * the start state is not a member of the set of states inferred from the transition function;
+      * the set of accept states is not a subset of the set of states inferred from the transition function;
+      * the range of the transition function is not a subset of the set of states inferred from the transition function;
+      * a member of the alphabet inferred from the transition function is not a one-character string;
+      * the transition function is missing a case -- i.e., it is not the case that every pair of a state and a symbol is in the domain of the transition function.
+    The exception message will specify which of these above conditions things triggered the exception, and which states/symbols are the source of the problem."""
+   
     def __or__(self, other):
         """Let A be the language recognised by dfa1, and B be the language recognized by dfa2. `dfa1 | dfa2` returns a dfa that recognizes A union B. The states of dfa1 | dfa2 are ordered pairs of states from dfa1 and dfa2. There is no problem with the input DFAs having different alphabets."""
 
@@ -465,7 +465,7 @@ The exception message will specify which of these above conditions things trigge
         return False if current_state not in self.accept_states else True
 
     def encode(self):
-    """Let A be the language accepted by dfa. `dfa.encode()` returns a regex string that generates A. That regex string is liable to be much more complicated than necessary; maybe I'll figure out how to improve on average simplicity, eventually. Note that the regex language I use is much simpler than the standard python regex language (though it is technically equivalent in expressive power)."""
+        """Let A be the language accepted by dfa. `dfa.encode()` returns a regex string that generates A. That regex string is liable to be much more complicated than necessary; maybe I'll figure out how to improve on average simplicity, eventually. Note that the regex language I use is much simpler than the standard python regex language (though it is technically equivalent in expressive power)."""
         gnfa = self._gnfize()
         while len(gnfa.states) > 2:
             gnfa = gnfa.reduce()
