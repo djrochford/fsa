@@ -2,7 +2,7 @@ class CFG:
     """A context-free grammar class. Takes two parameters: the grammar's rules, and the start variable, in that order.
 
     The rules should be specified as a dictionary with string keys and set (or frozenset) values. Each member of the set is a possible substitution
-    for that variable; a substitutions should be a list of strings, or, if you wish, in the case of single-variable substitutions, a string.
+    for that variable; a substitutions should be a tuple of strings, or, if you wish, in the case of single-variable substitutions, a string.
 
     The variables and terminals of the grammar are inferred from the rule dictionary. All keys are assumed to be variables of the grammar;
     everything that appears in a substitution that isn't a variable is assumed to be a terminal.
@@ -44,7 +44,7 @@ class CFG:
             "Values {} of rules dictionary are not either sets or frozensets."
         )
         members = set.union(*list(self.rules.values()))
-        bad_members = {x for x in members if type(x) != str}
+        bad_members = {x for x in members if not (type(x) == str or type(x) == tuple)}
         self._error_message(
             bad_members,
             "Value member {} is not a string.",
@@ -54,7 +54,7 @@ class CFG:
     def _find_terminals(self):
         substitutions = set.union(*self.rules.values())
         substitution_values = set()
-        for substitution in subsitutions:
+        for substitution in substitutions:
             if type(substitution) == list:
                 for value in substitution:
                     substitution_values.add(value)
@@ -122,6 +122,9 @@ class CFG:
         for rule in rule_set:
             if type(rule[1]) == str:
                 rule_set.add((rule[0], [rule[1]]))
+                rule_set.remove(rule)
+            else:
+                rule_set.add(list(rule))
                 rule_set.remove(rule)
         #rule_variables = {v for v, s in rule_set}
         #rule_substitution_values = get_substitution_values(rule_set)
@@ -219,8 +222,8 @@ class CFG:
         for rule in rule_set:
             variable, substitution = rule
             if variable in normalized_rules:
-                normalized_rules[variable].add(substitution)
+                normalized_rules[variable].add(tuple(substitution))
             else:
-                normalized_rules[variable] = {substitution}
+                normalized_rules[variable] = (substitution)
 
         return CFG(normalized_rules, normalized_start)
