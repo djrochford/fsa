@@ -1,10 +1,8 @@
-import re
-
 class CFG:
     """A context-free grammar class. Takes two parameters: the grammar's rules, and the start variable, in that order.
 
     The rules should be specified as a dictionary with string keys and set (or frozenset) values. Each member of the set is a possible substitution
-    for that variable; the substitutions should also be strings.
+    for that variable; a substitutions should be a list of strings, or, if you wish, in the case of single-variable substitutions, a string.
 
     The variables and terminals of the grammar are inferred from the rule dictionary. All keys are assumed to be variables of the grammar;
     everything that appears in a substitution that isn't a variable is assumed to be a terminal.
@@ -16,7 +14,7 @@ class CFG:
         2. the rule dictionary contains a non-string key;
         3. the rule dictionary contains a value that is neither a set nor a frozenset;
         4. one of the set-values of the rule dictionary has a non-string member;
-        5. there are no terminals among the possible susbtitutions;
+        5. there are no terminals among the possible substitutions;
         6. the start-variable parameter is not one of the variables inferred from the rule dictionary.
     The exception message will specify which of the above conditions triggered the exception, and which variables/terminals
     were the source of the problem.
@@ -25,7 +23,7 @@ class CFG:
         self.rules = rules
         self._check_rules()
         self.variables = set(self.rules.keys())
-        self.terminals = set.union(*map(self._parse_values, self.rules.values()))
+        self.terminals = self._find_terminals()
         self._check_terminals()
         self.start_variable = start_variable
         self._check_start()
@@ -53,6 +51,19 @@ class CFG:
             "Value members {} are not strings."
         )
 
+    def _find_terminals(self):
+        substitutions = set.union(*self.rules.values())
+        substitution_values = set()
+        for substitution in subsitutions:
+            if type(substitution) == list:
+                for value in substitution:
+                    substitution_values.add(value)
+            else:
+                substitution_values.add(substitution)
+        terminals = substitution_values - self.variables
+        return terminals
+
+
     def _check_terminals(self):
         if self.terminals == set():
             raise ValueError("There are no terminals in the rule dictionary values.")
@@ -60,10 +71,6 @@ class CFG:
     def _check_start(self):
         if self.start_variable not in self.variables:
             raise ValueError("Start variable not in the CFG's variable set.")
-
-    def _parse_values(self, substitution_set):
-        parse = lambda substitution: set(re.split('|'.join(self.variables), substitution)) - {'', '€'}
-        return set.union(*map(parse, substitution_set))
 
     def _error_message(self, bad_set, message_singular, message_plural):
         if bad_set != set():
@@ -93,96 +100,121 @@ class CFG:
         The resulting grammar is liable to much more complicated than the minimally-complicated, Chomsky-normalized
         grammar that generates L. Maybe some day I'll add some stuff to simplify the result.
         """
-
+        # first some utility procedures
         def get_new_variable(variable_set):
-            new_variable = 'V';
+            new_variable = 'V'
+            counter = 1
             while new_variable in variable_set:
-                new_variable = new_variable + '`'
+                new_variable = new_variable + str(counter)
+                counter += 1
             return new_variable
+        #powerset code an itertools recipe, from https://docs.python.org/3/library/itertools.html#recipes
+        #(minor adjustment made to make the result a set)
+        def powerset(iterable):
+            s = list(iterable)
+            return chain.from_iterable(set(combinations(s, r)) for r in range(len(s)+1))
+
+        # def get_substitution_values(rule_set):
+        #     substitutions = set.union(*[s for v, s in rule_set])
+
+        #some pre-processing of the rules to make life easier
         rule_set = {(v, s) for v in self.rules for s in self.rules[v]}
-        normalized_start = get_new_variable(self.variables)
-        rule_set.add((normalized_start, self.start_variable))
-        removed_rules = set()
-        rule_variables = {v for v, s in rule_set}
-        rule_substitutions = {s for v, s in rule_set}
-
-        while rule_substitutions & (rule_variables | {'€'}) != set():
-            for rule in list(rule_set):
-                variable, substitution = rule
-                if substitution in rule_variables | {'€'}:
-                    rule_set.remove(rule)
-                    removed_rules.add(rule)
-                    for other_rule in list(rule_set):
-                        other_variable, other_substitution = other_rule
-                        if substitution == '€':
-                            if variable in other_substitution:
-                                for match in re.finditer(variable, other_substitution):
-                                    new_substitution = other_substitution[:match.start()] + other_substitution[match.end()+1:]
-                                    if new_substitution == '':
-                                        new_substitution = '€'
-                                    new_rule = (other_variable, new_substitution)
-                                    if not (new_rule in removed_rules):
-                                        rule_set.add(new_rule)
-                        else:
-                            if other_variable == substitution:
-                                new_rule = (variable, other_substitution)
-                                if not (new_rule in removed_rules):
-                                    rule_set.add(new_rule)
-            rule_substitutions = {s for v, s in rule_set}
-            rule_variables = {v for v, s in rule_set}
-
-        def parse_substitution(string):
-            words = {v for v, s in rule_set} | self.terminals
-            word_candidate = ''
-            parsed = []
-            for char in string:
-                word_candidate += char
-                if char in words:
-                    parsed.append(word_candidate)
-                    word_candidate = ''
-            return parsed
-
-        three_word_rules = {rule for rule in rule_set if len(parse_substitution(rule[1])) >=3}
-        while three_word_rules != set():
-            for rule in three_word_rules:
-                variable, substitution = rule
+        for rule in rule_set:
+            if type(rule[1]) == str:
+                rule_set.add((rule[0], [rule[1]]))
                 rule_set.remove(rule)
-                parsed_substitution = parse_substitution(substitution)
-                last_variable = variable
-                for word in parsed_substitution[:-2]:
-                    new_variable = get_new_variable({v for v, s in rule_set | {(variable, substitution)}})
-                    new_rule = (last_variable, word + new_variable)
-                    rule_set.add(new_rule)
-                    last_variable = new_variable
-                final_rule = (last_variable, ''.join(parsed_substitution[-2:]))
-                rule_set.add(final_rule)
-            three_word_rules = {rule for rule in rule_set if len(parse_substitution(rule[1])) >= 3}
+        #rule_variables = {v for v, s in rule_set}
+        #rule_substitution_values = get_substitution_values(rule_set)
         
-        def get_bad_remaining_rules():
-            bad_rules = set()
-            for rule in rule_set:
-                parsed_substitution = parse_substitution(rule[1])
-                if len(parsed_substitution) == 2 and (self.terminals & set(parsed_substitution) != set()):
-                    bad_rules.add(rule)
-            return bad_rules
+        def deal_with_start():
+            normalized_start = get_new_variable(self.variables)
+            rule_set.add((normalized_start, [self.start_variable]))
+            return normalized_start
 
-        bad_remaining_rules = get_bad_remaining_rules()
-        while bad_remaining_rules != set():
-            for rule in bad_remaining_rules:
-                variable, substitution = rule
-                parsed_substitution = parse_substitution(substitution)
-                for word in set(parsed_substitution):
-                    if word in self.terminals:
-                        new_variable = get_new_variable({v for v, s in rule_set})
-                        rule_set.add((new_variable, word))
-                        for other_rule in get_bad_remaining_rules():
-                            other_variable, other_substitution = other_rule
-                            if word in other_substitution:
-                                rule_set.remove(other_rule)
-                                new_substitution = other_substitution.replace(word, new_variable)
-                                rule_set.add((other_variable, new_substitution))
-            bad_remaining_rules = get_bad_remaining_rules()
+        normalized_start = deal_with_start()
 
+        def deal_with_epilsons():
+            remove_epsilons = set()
+            epsilon_rules = {rule for rule in rule_set if rule[0] != normalized_start and rule[1] == ['€']}
+            while epsilon_rules != set():
+                for rule in epsilon_rules:
+                    variable = rule[0]
+                    rule_set.remove(rule)
+                    removed_epsilons.add(rule)
+                    for v, s in rule_set:
+                        if s == [variable]:
+                            new_rule = (v, ['€'])
+                            if new_rule not in removed_epsilons:
+                                rule_set.add(new_rule)
+                        else:
+                            if variable in s:
+                                occurences = [i for i, value in s if value == variable]
+                                power_set_occurences = powerset(occurences)
+                                for occurence_set in power_set_occurences:
+                                    new_substitution = substitution.copy()
+                                    for index in occurence_set:
+                                        del new_substitution[index]
+                                    new_rule = (v, new_substitution)
+                                    rule_set.add(new_rule)
+                epsilon_rules = {rule for rule in rule_set if rule[0] != normalized_start and rule[1] == ['€']}
+        
+        deal_with_epilsons()
+
+        def deal_with_unit_rules():
+            removed_unit_rules = set()
+            unit_rules = {rule for rule in rule_set if len(rule[1]) == 1 and rule[1][0] not in self.terminals}
+            while unit_rules != set():
+                for rule in unit_rules:
+                    variable = rule[0]
+                    substitution_variable = rule[1][0]
+                    rule_set.remove(rule)
+                    removed_unit_rules.add(rule)
+                    for v, s in rule_set: 
+                        if v == substitution_variable and s[0] not in variable_set:
+                            new_rule = (variable, s)
+                            if new_rule not in removed_unit_rules:
+                                rule_set.add(new_rule)
+                unit_rules = {rule for rule in rule_set if len(rule[1]) == 1 and rule[1][0] not in self.terminals}
+
+        deal_with_unit_rules()
+
+        def deal_with_long_rules():
+            variables = {v for v, s in rule_set}
+            long_rules = {rule for rule in rule_set if len(rule[1]) >= 3}
+            for rule in long_rules:
+                rule_set.remove(rule)
+                left_hand_variable = rule[0]
+                for value in rule[1][:-1]:
+                    new_variable = get_new_variable(variables)
+                    variables.add(new_variable)
+                    new_rule = (left_hand_variable, [value, new_variable])
+                    rule_set.add(new_rule)
+                    left_hand_variable = new_variable
+                new_rule = (left_hand_variable, [rule[1][-2], rule[1][-1]])
+                rule_set.add(new_rule)
+
+        deal_with_long_rules()
+
+        def deal_with_bad_terminals():
+            variables = {v for v, s in rule_set}
+            bad_terminal_rules = {rule for rule in rule_set if len(rule[1] == 2) and set(rule[1]) & self.terminals != set()}
+            for rule in bad_terminal_rules:
+                rule_set.remove(rule)
+                terminal_indices = [i for i, value in enumate(rule[1]) if value in self.terminals]
+                new_rule = rule.copy()
+                new_variables = set()
+                for i in terminal_indices:
+                    new_variable = get_new_variable(variables)
+                    variables.add(new_variable)
+                    new_variables.add(new_variable)
+                    new_rule[i] = new_variable
+                    other_new_rule = (new_variable, rule[i])
+                    rule_set.add(other_new_rule)
+                rule_set.add(new_rule)
+
+        deal_with_bad_terminals()
+
+        #convert rule_set to standard rule dictionary
         normalized_rules = {}
         for rule in rule_set:
             variable, substitution = rule
@@ -190,4 +222,5 @@ class CFG:
                 normalized_rules[variable].add(substitution)
             else:
                 normalized_rules[variable] = {substitution}
+
         return CFG(normalized_rules, normalized_start)

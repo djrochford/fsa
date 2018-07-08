@@ -22,9 +22,11 @@ class _FSA(_Base):
         return self.accept_states.copy()
 
     def _get_new_state(self, state_set):
-        new_state = 'new_state'
+        counter = 1
+        new_state = 'new_state1'
         while new_state in state_set:
-            new_state = new_state + '`'
+            counter += 1
+            new_state = new_state + str(counter)
         return new_state
 
 class _GNFA:
