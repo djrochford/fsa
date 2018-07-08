@@ -70,51 +70,33 @@ class TestCFG(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, bad_start_msg):
             CFG(self.rules1, '#')
 
-    # def test_chomsky_normalize(self):
-    #     def parse_substitution(string):
-    #         values = {v for v, s in rule_set} | self.terminals
-    #         parsed = ()
-    #         value_candidate = ''
-    #         is_value = False
-    #         for char in string:
-    #             if not re.compile(r'\w').match(char):
-    #                 value_candidate += char
-    #             if value_candidate in values:
-    #                 is_value = True
-    #             else:
-    #                 if is_value:
-    #                     parsed.append(value_candidate(-1))
-    #                     value_candidate = value_candidate(0)
-    #                     is_value = value_candidate in values
-    #         if value_candidate in values:
-    #             parsed.append(value_candidate)
-    #         else:
-    #             raise ValueError ("Error while parsing rule substitution: substitution cannot be parsed into values.")
-    #         return parsed
+    def test_chomsky_normalize(self):
+
+        rules = {
+            'S': {('A', 'S', 'A'), ('a', 'B')},
+            'A': {'B', 'S'},
+            'B': {'b', '€'}
+        }
         
-    #     rules = {
-    #         'S': {'ASA', 'aB'},
-    #         'A': {'B', 'S'},
-    #         'B': {'b', '€'}
-    #     }
-        
-    #     non_normal = CFG(rules, 'S')
-    #     protonormal = non_normal.chomsky_normalize()
-    #     #This below is to make sure the normalized grammar is a well-formed grammar, and
-    #     #passes all the checks that occur during instantiation.
-    #     normal = CFG(protonormal.get_rules(), protonormal.get_start_variable())
-    #     normal_rules = normal.get_rules()
-    #     for substitution in set.union(*list(normal_rules.values())):
-    #         substitution_list = parse_substitution(substitution)
-    #         length = len(substitution_list)
-    #         self.assertLessEqual(length, 2)
-    #         self.assertGreater(length, 0)
-    #         if length == 2:
-    #             for char in substitution_list:
-    #                 self.assertIn(char, normal.get_variables() - {normal.get_start_variable()})
-    #         if length == 1:
-    #             char = substitution_list(0)
-    #             self.assertIn(char, normal.get_terminals() | {'€'})
+        non_normal = CFG(rules, 'S')
+        protonormal = non_normal.chomsky_normalize()
+        #This below is to make sure the normalized grammar is a well-formed grammar, and
+        #passes all the checks that occur during instantiation.
+        normal = CFG(protonormal.get_rules(), protonormal.get_start_variable())
+        normal_rules = normal.get_rules()
+        for substitution in set.union(*normal_rules.values()):
+            if type(substitution) == str:
+                substitution = (substitution)
+            length = len(substitution)
+            print("+++++", substitution)
+            self.assertLessEqual(length, 2)
+            self.assertGreater(length, 0)
+            if length == 2:
+                for value in substitution:
+                    self.assertIn(value, normal.get_variables() - {normal.get_start_variable()})
+            if length == 1:
+                value = substitution[0]
+                self.assertIn(value, normal.get_terminals())
 
 
 
