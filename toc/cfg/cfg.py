@@ -4,7 +4,7 @@ class CFG:
     """A context-free grammar class. Takes two parameters: the grammar's rules, and the start variable, in that order.
 
     The rules should be specified as a dictionary with string keys and set (or frozenset) values. Each member of the set is a possible substitution
-    for that variable; a substitutions should be a tuple of strings, or, if you wish, in the case of single-variable substitutions, a string.
+    for that variable; a substitution should be a tuple of strings, or, if you wish, in the case of single-variable substitutions, a string.
 
     The variables and terminals of the grammar are inferred from the rule dictionary. All keys are assumed to be variables of the grammar;
     everything that appears in a substitution that isn't a variable is assumed to be a terminal.
@@ -93,6 +93,42 @@ class CFG:
 
     def get_terminals(self):
         return self.terminals.copy()
+
+    def is_valid_derivation(self, derivation):
+        """Your derivation should be in the form of a list of lists, the members of each list being
+        variables or terminals of the cfg instance. is_valid_derivation returns True iff each list can be derived
+        from the previous list via a rule in the CFG's rule dictionary -- i.e., it returns True iff the
+        derivation encoded in your list of lists is a valid derivation for the relevant CFG. It returns False
+        otherwise.
+        """
+
+        def yields(line1, line2):
+            if line1 == line2:
+                return True
+            else:
+                if len(line1) < 1:
+                    return False
+                first_term = line1[0]
+                possible_substitutes = {first_term}
+                if first_term in self.variables:
+                    possible_substitutes = possible_substitutes | self.rules[first_term]
+                for substitution in possible_substitutes:
+                    if type(substitution) == str:
+                        substitution = [substitution]
+                    is_valid = False
+                    if line2[:len(substitution)] == list(substitution):
+                        is_valid = yields(line1[1:], line2[len(substitution):])
+                    if is_valid:
+                        return True
+                return False
+
+
+        for i in range(len(derivation) - 1):
+            if not yields(derivation[i], derivation[i+1]):
+                return False
+        return True
+
+
 
     def chomsky_normalize(self):
         """Let cfg be a context-free grammar that generates language L.
@@ -193,7 +229,6 @@ class CFG:
                 rule_set.add(new_rule)
 
         deal_with_long_rules()
-        print("-----", rule_set)
 
         def deal_with_bad_terminals():
             variables = {v for v, s in rule_set}
@@ -214,7 +249,6 @@ class CFG:
                 rule_set.add((new_rule[0], tuple(new_rule[1])))
 
         deal_with_bad_terminals()
-        print("-----", rule_set)
  
         #convert rule_set to standard rule dictionary
         normalized_rules = {}
@@ -224,6 +258,5 @@ class CFG:
                 normalized_rules[variable].add(substitution)
             else:
                 normalized_rules[variable] = {substitution}
-        print("======", normalized_rules)
 
         return CFG(normalized_rules, normalized_start)

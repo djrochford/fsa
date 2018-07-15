@@ -70,6 +70,38 @@ class TestCFG(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, bad_start_msg):
             CFG(self.rules1, '#')
 
+    def test_is_valid_derivation(self):
+        derivation1 = [
+            ['<SENTENCE>'],
+            ['<NOUN-PHRASE>', ' ', '<VERB-PHRASE>'],
+            ['<CMPLX-NOUN>', ' ', '<VERB-PHRASE>'],
+            ['<ARTICLE>', ' ', '<NOUN>', ' ', '<VERB-PHRASE>'],
+            ['a', ' ', '<NOUN>', ' ', '<VERB-PHRASE>'],
+            ['a', ' ', 'boy', ' ', '<VERB-PHRASE>'],
+            ['a', ' ', 'boy', ' ', '<CMPLX-VERB>'],
+            ['a', ' ', 'boy', ' ', '<VERB>'],
+            ['a', ' ', 'boy', ' ', 'sees']
+        ]
+
+        derivation1bad = list(derivation1)
+        derivation1bad[3] = ['<ARTICLE>', '<NOUN>', ' ', '<VERB-PHRASE>']
+
+        derivation2 = [
+            ['<EXPR>'],
+            ['<EXPR>', '+', '<TERM>'],
+            ['<TERM>', '+', '<TERM>', '*', '<FACTOR>'],
+            ['<FACTOR>', '+', '<FACTOR>', '*', 'a'],
+            ['a', '+', 'a', '*', 'a']
+        ]
+
+        derivation2bad = list(derivation2)
+        derivation2bad[2] = ['<FACTOR>', '+', '<TERM>', '*', '<FACTOR>']
+
+        self.assertTrue(self.g2.is_valid_derivation(derivation1))
+        self.assertFalse(self.g2.is_valid_derivation(derivation1bad))
+        self.assertTrue(self.g4.is_valid_derivation(derivation2))
+        self.assertFalse(self.g4.is_valid_derivation(derivation2bad))
+
     def test_chomsky_normalize(self):
 
         rules = {
@@ -88,7 +120,6 @@ class TestCFG(unittest.TestCase):
             if type(substitution) == str:
                 substitution = (substitution)
             length = len(substitution)
-            print("+++++", substitution)
             self.assertLessEqual(length, 2)
             self.assertGreater(length, 0)
             if length == 2:
@@ -97,12 +128,10 @@ class TestCFG(unittest.TestCase):
             if length == 1:
                 value = substitution[0]
                 self.assertIn(value, normal.get_terminals())
-
-
-
-
-
-
+        for variable in normal_rules:
+            if variable != normal.get_start_variable():
+                self.assertFalse(normal_rules[variable] == ('€',))
+                self.assertFalse(normal_rules[variable] == '€')
 
 if __name__ == '__main__':
     unittest.main()
