@@ -1,7 +1,7 @@
 # toc
-A python package for doing theory-of-computation related stuff. 
+A python library for doing theory-of-computation related stuff. 
 
-This is a work in progress, and far from complete. Comments, requests, suggestions for improvement are all welcome. Feel free to submit an issue.
+This is a work in progress, and far from complete. It is highly non-optimised, as of now. I expect, if it useful to anyone other than me, it will be for educational purposes.
 
 Note that the terminology used in this package (and many of the test examples) follow the lead of Michael Sipser's excellent *Introduction to the Theory of Computation*.
 
