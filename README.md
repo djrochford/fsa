@@ -5,10 +5,10 @@ This is a work in progress, and far from complete. It is highly non-optimised, a
 
 Note that the terminology used in this package (and many of the test examples) follow the lead of Michael Sipser's excellent *Introduction to the Theory of Computation*.
 
-There are thus far two sub-packages: [fsa](#fsa) and [cfg](#cfg)...
+There are thus far two sub-modules: [fsa](#fsa) and [cfg](#cfg)...
 
 ## fsa
-A package for dealing with finite-state automata, and their ilk. There are three classes you import with the fsa sub-package:
+A module for dealing with finite-state automata, and their ilk. There are three classes you import with the fsa sub-module:
 
 ### DFA
 Parameters:
@@ -170,7 +170,7 @@ Each of the above are accessible using a `get` method, of the form `get_[PROPERT
 
 ## cfg
 
-A package for dealing with context-free grammars. Currently contains just the one class:
+A module for dealing with context-free grammars. Currently contains just the one class:
 
 ### CFG
 Parameters:
