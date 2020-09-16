@@ -1,4 +1,4 @@
-from .base import _Base
+from .base import _Base, _extract_states_alphabet, _error_message
 
 class FST(_Base):
     """A finite state transducer class. Takes two parameters: a transition function, and a start state, in that order.
@@ -24,8 +24,8 @@ class FST(_Base):
     are the source of the problem."""
     def __init__(self, transition_function, start_state):
         super().__init__(transition_function, start_state)
-        self.states, self.input_alphabet = self._extract_states_alphabet(self.transition_function.keys())
-        self.range, self.output_alphabet = self._extract_states_alphabet(self.transition_function.values())
+        self._states, self.input_alphabet = _extract_states_alphabet(self.transition_function.keys())
+        self.range, self.output_alphabet = _extract_states_alphabet(self.transition_function.values())
         self._well_defined()
 
     def _well_defined(self):
@@ -36,7 +36,7 @@ class FST(_Base):
 
     def _good_range(self):
         bad_range = self.range - self.states
-        self._error_message(
+        _error_message(
             bad_range,
             "State {} in the range of the transition function is not in the fsa's state set.",
             "States {} in the range of the transition function are not in the fsa's state set."
