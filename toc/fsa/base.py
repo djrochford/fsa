@@ -1,5 +1,5 @@
 """
-Base class used internally.
+Base class and utility functions used in both fsa and fst files.
 """
 
 from itertools import product
