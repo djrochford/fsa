@@ -1,6 +1,12 @@
 from itertools import product, chain, combinations
 from string import printable
-from .base import _Base, _extract_states_alphabet, _error_message
+from .base import (
+    _Base,
+    _extract_states_alphabet,
+    _error_message,
+    _good_alphabet,
+    _check_input
+)
 
 
 class _FSA(_Base):
@@ -18,8 +24,8 @@ class _FSA(_Base):
 
     def _well_defined(self):
         super()._well_defined()
+        _good_alphabet(self.alphabet, 'alphabet')
         self._good_accept()
-        self._good_alphabet(self.alphabet, 'alphabet')
         self._good_domain(self.alphabet)
 
     def _good_accept(self) -> None:
@@ -231,7 +237,7 @@ class NFA(_FSA):
     def accepts(self, string):
         """Determines whether nfa accepts input string. Will raise a ValueError exception is the string contains
         symbols that aren't in the nfa's alphabet."""
-        self._check_input(string, self.alphabet)
+        _check_input(string, self.alphabet)
         current_states = self._add_epsilons({self.start_state})
         for symbol in string:
             current_states = self._transition(current_states, symbol)
@@ -475,7 +481,7 @@ class DFA(_FSA):
 
     def accepts(self, string):
         """`my_dfa.accepts("some string")` returns `True` if my_dfa accepts "some string", and `False` otherwise. Will raise a ValueError exception is the string contains symbols that aren't in the DFA's alphabet."""
-        self._check_input(string, self.alphabet)
+        _check_input(string, self.alphabet)
         current_state = self.start_state
         for symbol in string:
             current_state = self.transition_function[(current_state, symbol)]

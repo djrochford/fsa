@@ -1,4 +1,10 @@
-from .base import _Base, _extract_states_alphabet, _error_message
+from .base import (
+    _Base,
+    _extract_states_alphabet,
+    _error_message,
+    _good_alphabet,
+    _check_input
+)
 
 class FST(_Base):
     """A finite state transducer class. Takes two parameters: a transition function, and a start state, in that order.
@@ -30,8 +36,8 @@ class FST(_Base):
 
     def _well_defined(self):
         super()._well_defined()
-        self._good_alphabet(self.input_alphabet, "input alphabet")
-        self._good_alphabet(self.output_alphabet, "output alphabet")
+        _good_alphabet(self.input_alphabet, "input alphabet")
+        _good_alphabet(self.output_alphabet, "output alphabet")
         self._good_domain(self.input_alphabet)
 
     def _good_range(self):
@@ -50,7 +56,7 @@ class FST(_Base):
     def process(self, string):
         """Takes a string as input, and returns a string as output.
         Specifically, it returns the string specified by the transition function."""
-        self._check_input(string, self.input_alphabet)
+        _check_input(string, self.input_alphabet)
         current_state = self.start_state
         output = ''
         for input_symbol in string:

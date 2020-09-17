@@ -56,7 +56,7 @@ class TestDFA(unittest.TestCase):
         self.m5 = DFA(tf5, 'q0', {'q0'})
 
     def test_instantiation(self):
-        bad_start_msg = "Start state '0' is not a member of the fsa's state set."
+        bad_start_msg = "Start state '0' is not a member of the fsm's state set."
         bad_accept_msg = "Accept states ('bad1', 'bad2'|'bad2', 'bad1') are not members of the fsa's state set."
         bad_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the alphabet are not single character strings."
         bad_range_msg = "State 'bad' in the range of the transition function is not in the fsa's state set."
@@ -198,7 +198,7 @@ class TestNFA(unittest.TestCase):
         self.n4 = NFA(tf4, 'q1', {'q1'})        
 
     def test_instantiation(self):
-        bad_start_msg = "Start state 'bad' is not a member of the fsa's state set."
+        bad_start_msg = "Start state 'bad' is not a member of the fsm's state set."
         bad_accept_msg = "Accept states ('bad1', 'bad2'|'bad2', 'bad1') are not members of the fsa's state set."
         bad_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the alphabet are not single character strings."
         bad_range_msg1 = "Value 'q1' in the range of the transition function is not a set."
@@ -259,7 +259,7 @@ class TestNFA(unittest.TestCase):
         d1 = self.n4.determinize()
         self.assertIsInstance(d1, DFA)
         self.assertEqual(
-            d1.get_states(),
+            d1.states,
             {
                 frozenset(),
                 frozenset({'q1'}),
@@ -417,7 +417,7 @@ class TestFST(unittest.TestCase):
         self.t2 = FST(tf2, 'q1')
 
     def test_instantiation(self):
-        bad_start_msg = "Start state 'bad' is not a member of the fsa's state set."
+        bad_start_msg = "Start state 'bad' is not a member of the fsm's state set."
         bad_input_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the input alphabet are not single character strings."
         bad_output_alphabet_msg = "Symbols ('!#', '0'|'0', '!#') in the output alphabet are not single character strings."
         bad_range_msg = "State 'bad' in the range of the transition function is not in the fsa's state set."
