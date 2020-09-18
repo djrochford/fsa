@@ -7,7 +7,7 @@ from typing import (
     Dict, Hashable, Iterable, Mapping, Set, Tuple, TypeVar, Union
 )
 
-T = TypeVar('T', bound=Hashable)
+T = TypeVar("T", bound=Hashable)
 
 TransitionFunction = Mapping[
     Tuple[T, str], Union[Tuple[T, str], Set[T], T]
@@ -20,7 +20,7 @@ class _Base:
             self,
             *,
             transition_function: TransitionFunction,
-            start_state: Hashable
+            start_state: T
     ):
         self._transition_function = transition_function
         self._start_state = start_state

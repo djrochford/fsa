@@ -1,14 +1,19 @@
 """
 File for the finite-state transducer class.
 """
+from typing import Hashable, Mapping, Set, Tuple, TypeVar
 
 from .base import (
     _Base,
     _extract_states_alphabet,
     _error_message,
     _good_alphabet,
-    _check_input
+    _check_input,
 )
+
+T = TypeVar("T", bound=Hashable)
+
+TransitionFunction = Mapping[Tuple[T, str], Tuple[T, str]]
 
 
 class FST(_Base):
@@ -47,7 +52,9 @@ class FST(_Base):
     triggered the exception, and which states/symbols are the source of the
     problem.
     """
-    def __init__(self, transition_function, start_state):
+    def __init__(
+            self, transition_function: TransitionFunction, start_state: T
+    ):
         super().__init__(
             transition_function=transition_function, start_state=start_state
         )
@@ -59,13 +66,13 @@ class FST(_Base):
         )
         self._well_defined()
 
-    def _well_defined(self):
+    def _well_defined(self) -> None:
         super()._well_defined()
         _good_alphabet(alphabet=self.input_alphabet, name="input alphabet")
         _good_alphabet(alphabet=self.output_alphabet, name="output alphabet")
         self._good_domain(self.input_alphabet)
 
-    def _good_range(self):
+    def _good_range(self) -> None:
         bad_range = self.range - self.states
         _error_message(
             bad_set=bad_range,
@@ -76,7 +83,7 @@ class FST(_Base):
         )
 
     @property
-    def input_alphabet(self):
+    def input_alphabet(self) -> Set[str]:
         """
         Getter for `input_alphabet` property. Returns a copy of the input
         alphabet; mutating the copy will not mutate the fst's input alphabet.
@@ -84,14 +91,14 @@ class FST(_Base):
         return self._input_alphabet.copy()
 
     @property
-    def output_alphabet(self):
+    def output_alphabet(self) -> Set[str]:
         """
         Getter for `output_alphabet` property. Returns a copy of the output
         alphabet; mutating the copy will not mutate the fst's output alphabet.
         """
         return self._output_alphabet.copy()
 
-    def process(self, string):
+    def process(self, string: str) -> str:
         """
         Takes a string as input, and returns a string as output.
         Specifically, it returns the string specified by the transition
