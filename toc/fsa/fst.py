@@ -29,23 +29,27 @@ class FST(_Base):
     The exception message will specify which of these five conditions things triggered the exception, and which states/symbols
     are the source of the problem."""
     def __init__(self, transition_function, start_state):
-        super().__init__(transition_function, start_state)
+        super().__init__(
+            transition_function=transition_function, start_state=start_state
+        )
         self._states, self.input_alphabet = _extract_states_alphabet(self.transition_function.keys())
         self.range, self.output_alphabet = _extract_states_alphabet(self.transition_function.values())
         self._well_defined()
 
     def _well_defined(self):
         super()._well_defined()
-        _good_alphabet(self.input_alphabet, "input alphabet")
-        _good_alphabet(self.output_alphabet, "output alphabet")
+        _good_alphabet(alphabet=self.input_alphabet, name="input alphabet")
+        _good_alphabet(alphabet=self.output_alphabet, name="output alphabet")
         self._good_domain(self.input_alphabet)
 
     def _good_range(self):
         bad_range = self.range - self.states
         _error_message(
-            bad_range,
-            "State {} in the range of the transition function is not in the fsa's state set.",
-            "States {} in the range of the transition function are not in the fsa's state set."
+            bad_set=bad_range,
+            message_singular=("State {} in the range of the transition "
+                              "function is not in the fsa's state set."),
+            message_plural=("States {} in the range of the transition "
+                            "function are not in the fsa's state set.")
         )
     def get_input_alphabet(self):
         return self.input_alphabet.copy()
@@ -56,7 +60,7 @@ class FST(_Base):
     def process(self, string):
         """Takes a string as input, and returns a string as output.
         Specifically, it returns the string specified by the transition function."""
-        _check_input(string, self.input_alphabet)
+        _check_input(string=string, alphabet=self.input_alphabet)
         current_state = self.start_state
         output = ''
         for input_symbol in string:

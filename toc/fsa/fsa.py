@@ -11,7 +11,9 @@ from .base import (
 
 class _FSA(_Base):
     def __init__(self, transition_function, start_state, accept_states):
-        super().__init__(transition_function, start_state)
+        super().__init__(
+            transition_function=transition_function, start_state=start_state
+        )
         self.accept_states = accept_states
         self._states, self._alphabet = _extract_states_alphabet(
             self._transition_function.keys()
@@ -24,16 +26,18 @@ class _FSA(_Base):
 
     def _well_defined(self):
         super()._well_defined()
-        _good_alphabet(self.alphabet, 'alphabet')
+        _good_alphabet(alphabet=self.alphabet, name="alphabet")
         self._good_accept()
         self._good_domain(self.alphabet)
 
     def _good_accept(self) -> None:
         bad_accept_states = self.accept_states - self.states
         _error_message(
-            bad_accept_states,
-            "Accept state {} is not a member of the fsa's state set.",
-            "Accept states {} are not members of the fsa's state set."
+            bad_set=bad_accept_states,
+            message_singular=("Accept state {} is not a member of the fsa's "
+                              "state set."),
+            message_plural=("Accept states {} are not members of the fsa's "
+                            "state set.")
         )
 
     def get_alphabet(self):
@@ -208,16 +212,20 @@ class NFA(_FSA):
     def _good_range(self):
         bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
         _error_message(
-            bad_range,
-            "Value {} in the range of the transition function is not a set.",
-            "Values {} in the range of the transition function are not sets."
+            bad_set=bad_range,
+            message_singular=("Value {} in the range of the transition "
+                              "function is not a set."),
+            message_plural=("Values {} in the range of the transition "
+                            "function are not sets.")
         )
         transition_range = set().union(*self.transition_function.values())
         also_bad_range = transition_range - self.states
         _error_message(
-            also_bad_range,
-            "State {} in the range of the transition function is not in the fsa's state set.",
-            "States {} in the range of the transition function are not in the fsa's state set."
+            bad_set=also_bad_range,
+            message_singular=("State {} in the range of the transition "
+                              "function is not in the fsa's state set."),
+            message_plural=("States {} in the range of the transition "
+                            "function are not in the fsa's state set.")
         )
 
     def _get_successors(self, state_set, symbol):
@@ -237,7 +245,7 @@ class NFA(_FSA):
     def accepts(self, string):
         """Determines whether nfa accepts input string. Will raise a ValueError exception is the string contains
         symbols that aren't in the nfa's alphabet."""
-        _check_input(string, self.alphabet)
+        _check_input(string=string, alphabet=self.alphabet)
         current_states = self._add_epsilons({self.start_state})
         for symbol in string:
             current_states = self._transition(current_states, symbol)
@@ -327,9 +335,9 @@ class NFA(_FSA):
         }        
 
         _error_message(
-            set(not_symbols) & set(alphabet),
-            "Alphabet cannot contain character {}.",
-            "Alphabet cannot contain characters {}."
+            bad_set=set(not_symbols) & set(alphabet),
+            message_singular="Alphabet cannot contain character {}.",
+            message_plural="Alphabet cannot contain characters {}."
         )
 
         def fit_empty(empty):
@@ -474,14 +482,16 @@ class DFA(_FSA):
         transition_range = set(self.transition_function.values())
         bad_range = transition_range - self.states
         _error_message(
-            bad_range,
-            "State {} in the range of the transition function is not in the fsa's state set.",
-            "States {} in the range of the transition function are not in the fsa's state set."
+            bad_set=bad_range,
+            message_singular=("State {} in the range of the transition "
+                              "function is not in the fsa's state set."),
+            message_plural=("States {} in the range of the transition "
+                            "function are not in the fsa's state set.")
         )
 
     def accepts(self, string):
         """`my_dfa.accepts("some string")` returns `True` if my_dfa accepts "some string", and `False` otherwise. Will raise a ValueError exception is the string contains symbols that aren't in the DFA's alphabet."""
-        _check_input(string, self.alphabet)
+        _check_input(string=string, alphabet=self.alphabet)
         current_state = self.start_state
         for symbol in string:
             current_state = self.transition_function[(current_state, symbol)]

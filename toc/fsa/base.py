@@ -18,6 +18,7 @@ class _Base:
 
     def __init__(
             self,
+            *,
             transition_function: TransitionFunction,
             start_state: Hashable
     ):
@@ -66,9 +67,11 @@ class _Base:
         bad_pairs = (set(product(self.states, alphabet))
                      - self.transition_function.keys())
         _error_message(
-            bad_pairs,
-            "Pair {} is missing from transition function domain.",
-            "Pairs {} are missing from transition function domain."
+            bad_set=bad_pairs,
+            message_singular=("Pair {} is missing from transition function "
+                              "domain."),
+            message_plural=("Pairs {} are missing from transition function "
+                            "domain.")
         )
 
 
@@ -82,7 +85,7 @@ def _extract_states_alphabet(
 
 
 def _error_message(
-        bad_set: set, message_singular: str, message_plural: str
+        *, bad_set: set, message_singular: str, message_plural: str
 ) -> None:
     if bad_set != set():
         quoted_members = {"'{}'".format(x) for x in bad_set}
@@ -91,21 +94,23 @@ def _error_message(
         raise ValueError(message_plural.format((", ").join(quoted_members)))
 
 
-def _good_alphabet(alphabet: Iterable, name: str) -> None:
+def _good_alphabet(*, alphabet: Iterable, name: str) -> None:
     bad_symbols = {
         x for x in alphabet if not (isinstance(x, str) and len(x) == 1)
     }
     _error_message(
-        bad_symbols,
-        "Symbol {} in the " + name + " is not single character string.",
-        "Symbols {} in the " + name + " are not single character strings."
+        bad_set=bad_symbols,
+        message_singular=("Symbol {} in the " + name + " is not single "
+                          "character string."),
+        message_plural=("Symbols {} in the " + name + " are not single "
+                        "character strings.")
     )
 
 
-def _check_input(string: str, alphabet: set):
+def _check_input(*, string: str, alphabet: set):
     bad_symbols = set(list(string)) - alphabet
     _error_message(
-        bad_symbols,
-        "Symbol {} not in fsa's alphabet",
-        "Symbols {} not in fsa's alphabet"
+        bad_set=bad_symbols,
+        message_singular="Symbol {} not in fsa's alphabet",
+        message_plural="Symbols {} not in fsa's alphabet"
     )
