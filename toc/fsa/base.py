@@ -3,10 +3,14 @@ Base class and utility functions used in both fsa and fst files.
 """
 
 from itertools import product
-from typing import Dict, Hashable, Iterable, Mapping, Set, Tuple, Union
+from typing import (
+    Dict, Hashable, Iterable, Mapping, Set, Tuple, TypeVar, Union
+)
+
+T = TypeVar('T', bound=Hashable)
 
 TransitionFunction = Mapping[
-    Tuple[Hashable, str], Union[Tuple[Hashable, str], Set, Hashable]
+    Tuple[T, str], Union[Tuple[T, str], Set[T], T]
 ]
 
 
