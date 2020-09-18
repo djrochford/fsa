@@ -76,8 +76,8 @@ class _Base:
 
 
 def _extract_states_alphabet(
-        pairs: Iterable[Tuple[Hashable, str]]
-) -> Tuple[Set[Hashable], Set[str]]:
+        pairs: Iterable[Tuple[T, str]]
+) -> Tuple[Set[T], Set[str]]:
     [states_tuple, alphabet_tuple] = zip(*pairs)
     states = set(states_tuple)
     alphabet = set(alphabet_tuple) - {""}

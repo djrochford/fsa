@@ -1,3 +1,7 @@
+"""
+File for the finite-state transducer class.
+"""
+
 from .base import (
     _Base,
     _extract_states_alphabet,
@@ -47,10 +51,10 @@ class FST(_Base):
         super().__init__(
             transition_function=transition_function, start_state=start_state
         )
-        self._states, self.input_alphabet = _extract_states_alphabet(
+        self._states, self._input_alphabet = _extract_states_alphabet(
             self.transition_function.keys()
         )
-        self.range, self.output_alphabet = _extract_states_alphabet(
+        self.range, self._output_alphabet = _extract_states_alphabet(
             self.transition_function.values()
         )
         self._well_defined()
@@ -70,20 +74,36 @@ class FST(_Base):
             message_plural=("States {} in the range of the transition "
                             "function are not in the fsa's state set.")
         )
-    def get_input_alphabet(self):
-        return self.input_alphabet.copy()
 
-    def get_output_alphabet(self):
-        return self.output_alphabet.copy()
+    @property
+    def input_alphabet(self):
+        """
+        Getter for `input_alphabet` property. Returns a copy of the input
+        alphabet; mutating the copy will not mutate the fst's input alphabet.
+        """
+        return self._input_alphabet.copy()
+
+    @property
+    def output_alphabet(self):
+        """
+        Getter for `output_alphabet` property. Returns a copy of the output
+        alphabet; mutating the copy will not mutate the fst's output alphabet.
+        """
+        return self._output_alphabet.copy()
 
     def process(self, string):
-        """Takes a string as input, and returns a string as output.
-        Specifically, it returns the string specified by the transition function."""
+        """
+        Takes a string as input, and returns a string as output.
+        Specifically, it returns the string specified by the transition
+        function.
+        """
         _check_input(string=string, alphabet=self.input_alphabet)
         current_state = self.start_state
-        output = ''
+        output = ""
         for input_symbol in string:
-            (next_state, output_symbol) = self.transition_function[(current_state, input_symbol)]
+            (next_state, output_symbol) = self.transition_function[
+                (current_state, input_symbol)
+            ]
             output += output_symbol
             current_state = next_state
-        return output 
+        return output
