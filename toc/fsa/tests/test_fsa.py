@@ -413,8 +413,8 @@ class TestFST(unittest.TestCase):
             ('q3', 'b'): ('q2', '1')
         }
 
-        self.t1 = FST(self.tf1, 'q1')
-        self.t2 = FST(tf2, 'q1')
+        self.t1 = FST(transition_function=self.tf1, start_state='q1')
+        self.t2 = FST(transition_function=tf2, start_state='q1')
 
     def test_instantiation(self):
         bad_start_msg = "Start state 'bad' is not a member of the fsm's state set."
@@ -438,15 +438,15 @@ class TestFST(unittest.TestCase):
         del tf5[('q1', '0')]
 
         with self.assertRaisesRegex(ValueError, bad_start_msg):
-            FST(self.tf1, 'bad')
+            FST(transition_function=self.tf1, start_state='bad')
         with self.assertRaisesRegex(ValueError, bad_input_alphabet_msg):
-            FST(tf2, 'q1')
+            FST(transition_function=tf2, start_state='q1')
         with self.assertRaisesRegex(ValueError, bad_output_alphabet_msg):
-            FST(tf3, 'q1')
+            FST(transition_function=tf3, start_state='q1')
         with self.assertRaisesRegex(ValueError, bad_range_msg):
-            FST(tf4, 'q1')
+            FST(transition_function=tf4, start_state='q1')
         with self.assertRaisesRegex(ValueError, bad_domain_msg):
-            FST(tf5, 'q1')
+            FST(transition_function=tf5, start_state='q1')
 
     def test_process(self):
         self.assertEqual(self.t1.process('2212011'), '1111000')

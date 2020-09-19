@@ -1,7 +1,7 @@
 """
 File for the finite-state transducer class.
 """
-from typing import Hashable, Mapping, Set, Tuple, TypeVar
+from typing import Hashable, Mapping, Set, Tuple, TypeVar, cast
 
 from .base import (
     _Base,
@@ -53,10 +53,15 @@ class FST(_Base):
     problem.
     """
     def __init__(
-            self, transition_function: TransitionFunction, start_state: T
+            self, *, transition_function: TransitionFunction, start_state: T
     ):
         super().__init__(
             transition_function=transition_function, start_state=start_state
+        )
+        # Because mypy infers the type of `_transition_function` to be the more
+        # generic type of the `_Base` class.
+        self._transition_function = cast(
+            TransitionFunction, self._transition_function
         )
         self._states, self._input_alphabet = _extract_states_alphabet(
             self.transition_function.keys()
@@ -103,11 +108,11 @@ class FST(_Base):
         Specifically, it returns the string specified by the transition
         function.
         """
-        _check_input(string=string, alphabet=self.input_alphabet)
-        current_state = self.start_state
+        _check_input(string=string, alphabet=self._input_alphabet)
+        current_state = self._start_state
         output = ""
         for input_symbol in string:
-            (next_state, output_symbol) = self.transition_function[
+            (next_state, output_symbol) = self._transition_function[
                 (current_state, input_symbol)
             ]
             output += output_symbol
