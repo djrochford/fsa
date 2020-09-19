@@ -61,21 +61,20 @@ class FST(_Base):
         self._states, self._input_alphabet = _extract_states_alphabet(
             self.transition_function.keys()
         )
-        self.range, self._output_alphabet = _extract_states_alphabet(
-            self.transition_function.values()
+        self._range, self._output_alphabet = _extract_states_alphabet(
+            self._transition_function.values()
         )
         self._well_defined()
 
     def _well_defined(self) -> None:
         super()._well_defined()
-        _good_alphabet(alphabet=self.input_alphabet, name="input alphabet")
-        _good_alphabet(alphabet=self.output_alphabet, name="output alphabet")
-        self._good_domain(self.input_alphabet)
+        _good_alphabet(alphabet=self._input_alphabet, name="input alphabet")
+        _good_alphabet(alphabet=self._output_alphabet, name="output alphabet")
+        self._good_domain(self._input_alphabet)
 
     def _good_range(self) -> None:
-        bad_range = self.range - self.states
         _error_message(
-            bad_set=bad_range,
+            bad_set=self._range - self._states,
             message_singular=("State {} in the range of the transition "
                               "function is not in the fsa's state set."),
             message_plural=("States {} in the range of the transition "
