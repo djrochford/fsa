@@ -47,9 +47,10 @@ class _Base:
     @property
     def states(self) -> Set:
         """
-        Returns a set of the finite state machine's states.
+        Returns a set of the finite state machine's states. Set returned is a
+        copy; mutating the set will not mutate the fsm's `states` value.
         """
-        return self._states
+        return self._states.copy()
 
     def _well_defined(self) -> None:
         self._good_start()
@@ -79,9 +80,7 @@ def _extract_states_alphabet(
         pairs: Iterable[Tuple[T, str]]
 ) -> Tuple[Set[T], Set[str]]:
     [states_tuple, alphabet_tuple] = zip(*pairs)
-    states = set(states_tuple)
-    alphabet = set(alphabet_tuple) - {""}
-    return (states, alphabet)
+    return (set(states_tuple), set(alphabet_tuple) - {""})
 
 
 def _error_message(
@@ -95,11 +94,10 @@ def _error_message(
 
 
 def _good_alphabet(*, alphabet: Iterable, name: str) -> None:
-    bad_symbols = {
-        x for x in alphabet if not (isinstance(x, str) and len(x) == 1)
-    }
     _error_message(
-        bad_set=bad_symbols,
+        bad_set={
+            x for x in alphabet if not (isinstance(x, str) and len(x) == 1)
+        },
         message_singular=("Symbol {} in the " + name + " is not single "
                           "character string."),
         message_plural=("Symbols {} in the " + name + " are not single "
@@ -108,9 +106,8 @@ def _good_alphabet(*, alphabet: Iterable, name: str) -> None:
 
 
 def _check_input(*, string: str, alphabet: set):
-    bad_symbols = set(list(string)) - alphabet
     _error_message(
-        bad_set=bad_symbols,
+        bad_set=set(string) - alphabet,
         message_singular="Symbol {} not in fsa's alphabet",
         message_plural="Symbols {} not in fsa's alphabet"
     )
