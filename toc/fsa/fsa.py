@@ -1,5 +1,11 @@
+"""
+Contains the DFA and NFA classes
+"""
+
 from itertools import product, chain, combinations
 from string import printable
+from typing import Hashable, Mapping, Tuple, TypeVar, Set, Union
+
 from .base import (
     _Base,
     _extract_states_alphabet,
@@ -8,23 +14,37 @@ from .base import (
     _check_input
 )
 
+T = TypeVar("T", bound=Hashable)
+DfaTransitionFunction = Mapping[Tuple[T, str], T]
+NfaTransitionFunction = Mapping[Tuple[T, str], Set[T]]
+FsaTransitionFunction = Union[DfaTransitionFunction, NfaTransitionFunction]
+
 
 class _FSA(_Base):
-    def __init__(self, transition_function, start_state, accept_states):
+    def __init__(
+        self,
+        transition_function: FsaTransitionFunction,
+        start_state: T,
+        accept_states: Set[T]
+    ):
         super().__init__(
             transition_function=transition_function, start_state=start_state
         )
-        self.accept_states = accept_states
+        self._accept_states = accept_states
         self._states, self._alphabet = _extract_states_alphabet(
             self._transition_function.keys()
         )
         self._well_defined()
 
     @property
-    def alphabet(self):
-        return self._alphabet
+    def alphabet(self) -> Set[str]:
+        return self._alphabet.copy()
 
-    def _well_defined(self):
+    @property
+    def accept_states(self) -> Set[T]:
+        return self._accept_states.copy()
+
+    def _well_defined(self) -> None:
         super()._well_defined()
         _good_alphabet(alphabet=self.alphabet, name="alphabet")
         self._good_accept()
@@ -40,12 +60,6 @@ class _FSA(_Base):
                             "state set.")
         )
 
-    def get_alphabet(self):
-        return self.alphabet.copy()
-
-    def get_accept_states(self):
-        return self.accept_states.copy()
-
     def _get_new_state(self, state_set):
         counter = 1
         new_state = 'new_state1'
@@ -54,16 +68,26 @@ class _FSA(_Base):
             new_state = new_state + str(counter)
         return new_state
 
+
+GnfaTransitionFunction = Mapping[Tuple[T, T], str]
+
+
 class _GNFA:
-    def __init__(self, transition_function, body_states, start_state, accept_state):
+    def __init__(
+        self,
+        transition_function: GnfaTransitionFunction,
+        body_states: Set[T],
+        start_state: T,
+        accept_state: T
+    ):
         self.transition_function = transition_function
         self.body_states = body_states
         self.start_state = start_state
         self.accept_state = accept_state
         self.states = self.body_states | {self.start_state} | {self.accept_state}
 
-    def reduce(self):
-        def union_main_scope(regex):
+    def reduce(self) -> "_GNFA":
+        def union_main_scope(regex: str) -> bool:
             paren_count = 0
             for char in regex:
                 if char == '(':
@@ -75,16 +99,16 @@ class _GNFA:
                         return True
             return False
 
-        def regex_star(regex): 
+        def regex_star(regex: str) -> str:
             if regex == 'Ø' or regex == '€':
                 return_value = '€'
             elif len(regex) == 1:
                 return_value = regex + '*'
-            else: 
+            else:
                 return_value = "({})*".format(regex)
             return return_value
 
-        def regex_concat(regex1, regex2):
+        def regex_concat(regex1: str, regex2: str) -> str:
             if regex1 == 'Ø' or regex2 == 'Ø':
                 return_value = 'Ø'
             elif regex1 == '€':
@@ -99,7 +123,7 @@ class _GNFA:
                 return_value = regex1 + regex2
             return return_value
 
-        def regex_union(regex1, regex2):
+        def regex_union(regex1: str, regex2: str) -> str:
             if regex1 == "Ø":
                 return_value = regex2
             elif regex2 == "Ø":
@@ -116,7 +140,10 @@ class _GNFA:
             for state2 in self.states - {self.start_state, rip}:
                 r3 = self.transition_function[(rip, state2)]
                 r4 = self.transition_function[(state1, state2)]
-                new_regex = regex_union(regex_concat(regex_concat(r1, regex_star(r2)), r3), r4)
+                new_regex = regex_union(
+                    regex_concat(regex_concat(r1, regex_star(r2)), r3),
+                    r4
+                )
                 reduced_tf[(state1, state2)] = new_regex
         return _GNFA(reduced_tf, self.body_states - {rip}, self.start_state, self.accept_state)
 

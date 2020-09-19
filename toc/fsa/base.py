@@ -38,14 +38,14 @@ class _Base:
         return dict(self._transition_function)
 
     @property
-    def start_state(self) -> Hashable:
+    def start_state(self) -> T:
         """
         Getter for the finite state machine's start state.
         """
         return self._start_state
 
     @property
-    def states(self) -> Set:
+    def states(self) -> Set[T]:
         """
         Returns a set of the finite state machine's states. Set returned is a
         copy; mutating the set will not mutate the fsm's `states` value.
@@ -61,7 +61,7 @@ class _Base:
             raise ValueError(f"Start state '{self.start_state}' is not a "
                              "member of the fsm's state set.")
 
-    def _good_range(self):
+    def _good_range(self) -> None:
         raise NotImplementedError
 
     def _good_domain(self, alphabet: Iterable) -> None:
