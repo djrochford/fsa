@@ -3,7 +3,9 @@ File containing DFA and NFA public classes
 """
 from itertools import product, chain, combinations
 from string import printable
-from typing import AbstractSet, Container, FrozenSet, Mapping, Tuple, Union
+from typing import (
+    AbstractSet, Container, FrozenSet, Mapping, Set, Tuple, Union
+)
 
 from .base import (
     _Base,
@@ -17,6 +19,8 @@ from .base import (
 State = str
 
 Symbol = str
+
+Regex = str
 
 FsaTransitionFunction = Mapping[
     Tuple[State, Symbol], Union[State, AbstractSet[State]]
@@ -72,16 +76,25 @@ class _FSA(_Base):
         return new_state
 
 
+GnfaTransitionFunction = Mapping[Tuple[State, State], Regex]
+
+
 class _GNFA:
-    def __init__(self, transition_function, body_states, start_state, accept_state):
+    def __init__(
+            self,
+            transition_function: GnfaTransitionFunction,
+            body_states: Set[State],
+            start_state: State,
+            accept_state: State
+    ):
         self.transition_function = transition_function
         self.body_states = body_states
         self.start_state = start_state
         self.accept_state = accept_state
         self.states = self.body_states | {self.start_state} | {self.accept_state}
 
-    def reduce(self):
-        def union_main_scope(regex):
+    def reduce(self) -> "_GNFA":
+        def union_main_scope(regex: Regex) -> bool:
             paren_count = 0
             for char in regex:
                 if char == '(':
@@ -93,16 +106,16 @@ class _GNFA:
                         return True
             return False
 
-        def regex_star(regex): 
+        def regex_star(regex: Regex) -> Regex:
             if regex == 'Ø' or regex == '€':
                 return_value = '€'
             elif len(regex) == 1:
                 return_value = regex + '*'
-            else: 
+            else:
                 return_value = "({})*".format(regex)
             return return_value
 
-        def regex_concat(regex1, regex2):
+        def regex_concat(regex1: Regex, regex2: Regex) -> Regex:
             if regex1 == 'Ø' or regex2 == 'Ø':
                 return_value = 'Ø'
             elif regex1 == '€':
@@ -117,7 +130,7 @@ class _GNFA:
                 return_value = regex1 + regex2
             return return_value
 
-        def regex_union(regex1, regex2):
+        def regex_union(regex1: Regex, regex2: Regex) -> Regex:
             if regex1 == "Ø":
                 return_value = regex2
             elif regex2 == "Ø":
