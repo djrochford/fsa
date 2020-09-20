@@ -4,7 +4,15 @@ File containing DFA and NFA public classes
 from itertools import product, chain, combinations
 from string import printable
 from typing import (
-    AbstractSet, Container, FrozenSet, Mapping, Set, Tuple, Union
+    AbstractSet,
+    Container,
+    FrozenSet,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Set,
+    Tuple,
+    Union
 )
 
 from .base import (
@@ -152,6 +160,9 @@ class _GNFA:
         return _GNFA(reduced_tf, self.body_states - {rip}, self.start_state, self.accept_state)
 
 
+NfaTransitionFunction = Mapping[Tuple[State, Symbol], AbstractSet[State]]
+MutableNfaTF = MutableMapping[Tuple[State, Symbol], Set[State]]
+
 class NFA(_FSA):
     """A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state 
     and a set of accept states, in that order.
@@ -182,7 +193,7 @@ class NFA(_FSA):
     The exception message will specify which of these six conditions things triggered the exception, and which states/symbols
     are the source of the problem."""
 
-    def __or__(self, other):
+    def __or__(self, other: "NFA") -> "NFA":
         """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 | nfa2` returns an nfa that 
         recognizes A union B. The cardinality of the state-set of nfa1 | nfa2 is the cardinality of the state set of nfa1
         plus the cardinality of the state-set of nfa2 plus 1.
@@ -196,7 +207,7 @@ class NFA(_FSA):
         union_accept_states = new_self.accept_states | new_other.accept_states
         return NFA(union_tf, union_start_state, union_accept_states)
 
-    def __add__(self, other):
+    def __add__(self, other: "NFA") -> "NFA":
         """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 + nfa2` returns an nfa that
         recognizes A concat B -- i.e., the language consisten of the set of strins of the form a concat b, where a is an element of A
         and b is an element of B. Note that a this `+` operation is not commutative."""
@@ -208,10 +219,8 @@ class NFA(_FSA):
                 concat_tf[(state, '')] = { new_other.start_state }
         return NFA(concat_tf, new_self.start_state, new_other.accept_states)
 
-        
-    def _combine(self, other):
-        def copy(nfa):
-            new_to_old = {}
+    def _combine(self, other: "NFA") -> Tuple["NFA", "NFA", MutableNfaTF]:
+        def copy(nfa: NFA) -> NFA:
             prime = lambda state : str(state) + '`'
             copy_tf = {}
             for state, symbol in nfa.transition_function.keys():
@@ -223,8 +232,11 @@ class NFA(_FSA):
         while overlap != set():
             other = copy(other)
             overlap = self.states & other.states
-        def add_empty_transitions(nfa1, nfa2):
-            def add_one_way(nfa1, nfa2):
+
+        def add_empty_transitions(
+                nfa1: NFA, nfa2: NFA
+        ) -> Tuple[NfaTransitionFunction, NfaTransitionFunction]:
+            def add_one_way(nfa1: NFA, nfa2: NFA) -> NfaTransitionFunction:
                 new_tf = nfa1.transition_function.copy()
                 extra_symbols = nfa2.alphabet - nfa1.alphabet
                 if extra_symbols != set():
@@ -240,7 +252,7 @@ class NFA(_FSA):
         combination_tf.update(new_other.transition_function)
         return new_self, new_other, combination_tf
 
-    def _good_range(self):
+    def _good_range(self) -> None:
         bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
         _error_message(
             bad_set=bad_range,
@@ -249,7 +261,7 @@ class NFA(_FSA):
             message_plural=("Values {} in the range of the transition "
                             "function are not sets.")
         )
-        transition_range = set().union(*self.transition_function.values())
+        transition_range: Set[Optional[AbstractSet[State]]] = set.union(*self.transition_function.values())
         also_bad_range = transition_range - self.states
         _error_message(
             bad_set=also_bad_range,
