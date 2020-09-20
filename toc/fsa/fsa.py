@@ -1,5 +1,10 @@
+"""
+File containing DFA and NFA public classes
+"""
 from itertools import product, chain, combinations
 from string import printable
+from typing import AbstractSet, Container, FrozenSet, Mapping, Tuple, Union
+
 from .base import (
     _Base,
     _extract_states_alphabet,
@@ -9,22 +14,40 @@ from .base import (
 )
 
 
+State = str
+
+Symbol = str
+
+FsaTransitionFunction = Mapping[
+    Tuple[State, Symbol], Union[State, AbstractSet[State]]
+]
+
+
 class _FSA(_Base):
-    def __init__(self, transition_function, start_state, accept_states):
+    def __init__(
+            self,
+            transition_function: FsaTransitionFunction,
+            start_state: State,
+            accept_states: AbstractSet[State]
+    ):
         super().__init__(
             transition_function=transition_function, start_state=start_state
         )
-        self.accept_states = accept_states
+        self._accept_states = accept_states
         self._states, self._alphabet = _extract_states_alphabet(
             self._transition_function.keys()
         )
         self._well_defined()
 
     @property
-    def alphabet(self):
+    def alphabet(self) -> FrozenSet[Symbol]:
         return self._alphabet
 
-    def _well_defined(self):
+    @property
+    def accept_states(self) -> AbstractSet[State]:
+        return self._accept_states
+
+    def _well_defined(self) -> None:
         super()._well_defined()
         _good_alphabet(alphabet=self.alphabet, name="alphabet")
         self._good_accept()
@@ -40,19 +63,14 @@ class _FSA(_Base):
                             "state set.")
         )
 
-    def get_alphabet(self):
-        return self.alphabet.copy()
-
-    def get_accept_states(self):
-        return self.accept_states.copy()
-
-    def _get_new_state(self, state_set):
+    def _get_new_state(self, state_set: Container) -> State:
         counter = 1
         new_state = 'new_state1'
         while new_state in state_set:
             counter += 1
             new_state = new_state + str(counter)
         return new_state
+
 
 class _GNFA:
     def __init__(self, transition_function, body_states, start_state, accept_state):
