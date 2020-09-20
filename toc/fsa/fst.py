@@ -1,7 +1,7 @@
 """
 File for the finite-state transducer class.
 """
-from typing import Hashable, Mapping, Set, Tuple, TypeVar, cast
+from typing import FrozenSet, Mapping, Tuple, cast
 
 from .base import (
     _Base,
@@ -11,9 +11,10 @@ from .base import (
     _check_input,
 )
 
-T = TypeVar("T", bound=Hashable)
+State = str
+Symbol = str
 
-TransitionFunction = Mapping[Tuple[T, str], Tuple[T, str]]
+TransitionFunction = Mapping[Tuple[State, Symbol], Tuple[State, Symbol]]
 
 
 class FST(_Base):
@@ -53,7 +54,10 @@ class FST(_Base):
     problem.
     """
     def __init__(
-            self, *, transition_function: TransitionFunction, start_state: T
+            self,
+            *,
+            transition_function: TransitionFunction,
+            start_state: State
     ):
         super().__init__(
             transition_function=transition_function, start_state=start_state
@@ -87,20 +91,20 @@ class FST(_Base):
         )
 
     @property
-    def input_alphabet(self) -> Set[str]:
+    def input_alphabet(self) -> FrozenSet[Symbol]:
         """
         Getter for `input_alphabet` property. Returns a copy of the input
         alphabet; mutating the copy will not mutate the fst's input alphabet.
         """
-        return self._input_alphabet.copy()
+        return self._input_alphabet
 
     @property
-    def output_alphabet(self) -> Set[str]:
+    def output_alphabet(self) -> FrozenSet[Symbol]:
         """
         Getter for `output_alphabet` property. Returns a copy of the output
         alphabet; mutating the copy will not mutate the fst's output alphabet.
         """
-        return self._output_alphabet.copy()
+        return self._output_alphabet
 
     def process(self, string: str) -> str:
         """

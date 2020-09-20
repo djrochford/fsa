@@ -4,13 +4,16 @@ Base class and utility functions used in both fsa and fst files.
 
 from itertools import product
 from typing import (
-    Dict, Hashable, Iterable, Mapping, Set, Tuple, TypeVar, Union
+    AbstractSet, Dict, FrozenSet, Iterable, Mapping, Tuple, Union
 )
 
-T = TypeVar("T", bound=Hashable)
+State = str
+
+Symbol = str
 
 TransitionFunction = Mapping[
-    Tuple[T, str], Union[Tuple[T, str], Set[T], T]
+    Tuple[State, Symbol],
+    Union[State, AbstractSet[State], Tuple[State, Symbol]]
 ]
 
 
@@ -20,7 +23,7 @@ class _Base:
             self,
             *,
             transition_function: TransitionFunction,
-            start_state: T
+            start_state: str
     ):
         self._transition_function = transition_function
         self._start_state = start_state
@@ -38,27 +41,26 @@ class _Base:
         return dict(self._transition_function)
 
     @property
-    def start_state(self) -> T:
+    def start_state(self) -> State:
         """
         Getter for the finite state machine's start state.
         """
         return self._start_state
 
     @property
-    def states(self) -> Set[T]:
+    def states(self) -> FrozenSet[str]:
         """
-        Returns a set of the finite state machine's states. Set returned is a
-        copy; mutating the set will not mutate the fsm's `states` value.
+        Gett for finite state machines's set of states.
         """
-        return self._states.copy()
+        return self._states
 
     def _well_defined(self) -> None:
         self._good_start()
         self._good_range()
 
     def _good_start(self) -> None:
-        if self.start_state not in self.states:
-            raise ValueError(f"Start state '{self.start_state}' is not a "
+        if self._start_state not in self._states:
+            raise ValueError(f"Start state '{self._start_state}' is not a "
                              "member of the fsm's state set.")
 
     def _good_range(self) -> None:
@@ -77,16 +79,16 @@ class _Base:
 
 
 def _extract_states_alphabet(
-        pairs: Iterable[Tuple[T, str]]
-) -> Tuple[Set[T], Set[str]]:
+        pairs: Iterable[Tuple[State, Symbol]]
+) -> Tuple[FrozenSet[State], FrozenSet[Symbol]]:
     [states_tuple, alphabet_tuple] = zip(*pairs)
-    return (set(states_tuple), set(alphabet_tuple) - {""})
+    return (frozenset(states_tuple), frozenset(alphabet_tuple) - {""})
 
 
 def _error_message(
-        *, bad_set: set, message_singular: str, message_plural: str
+        *, bad_set: AbstractSet, message_singular: str, message_plural: str
 ) -> None:
-    if bad_set != set():
+    if bad_set:
         quoted_members = {"'{}'".format(x) for x in bad_set}
         if len(quoted_members) == 1:
             raise ValueError(message_singular.format(*quoted_members))
@@ -105,7 +107,7 @@ def _good_alphabet(*, alphabet: Iterable, name: str) -> None:
     )
 
 
-def _check_input(*, string: str, alphabet: set):
+def _check_input(*, string: str, alphabet: AbstractSet) -> None:
     _error_message(
         bad_set=set(string) - alphabet,
         message_singular="Symbol {} not in fsa's alphabet",
