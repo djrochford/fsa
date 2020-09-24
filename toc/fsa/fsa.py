@@ -9,6 +9,7 @@ from typing import (
     FrozenSet,
     Iterable,
     Iterator,
+    List,
     Mapping,
     MutableMapping,
     Optional,
@@ -339,7 +340,7 @@ class NFA(_FSA):
         return NFA(star_tf, star_start, star_accepts)
 
     @staticmethod
-    def fit(regex, alphabet=set(printable) - {'(', ')', '|', '*'}):
+    def fit(regex: Regex, alphabet: AbstractSet[Symbol] = set(printable) - {'(', ')', '|', '*'}) -> "NFA":
         """Takes a regular expression and an alphabet (i.e., a set of one-character strings) as input; returns an NFA that recognises
         the language defined by that regular expression and that alphabet.
         
@@ -390,17 +391,17 @@ class NFA(_FSA):
             message_plural="Alphabet cannot contain characters {}."
         )
 
-        def fit_empty(empty):
-            tf = {pair: set() for pair in product({'q1'}, alphabet)}
+        def fit_empty(empty: Regex) -> NFA:
+            tf: NfaTransitionFunction = {pair: set() for pair in product({'q1'}, alphabet)}
             accept_states = set() if empty == 'Ø' else {'q1'}
             return NFA(tf, 'q1', accept_states)
 
-        def fit_symbol(symbol):
-            tf = { pair: set() for pair in product({'q1', 'q2'}, alphabet) }
+        def fit_symbol(symbol: Symbol) -> NFA:
+            tf: MutableNfaTF = { pair: set() for pair in product({'q1', 'q2'}, alphabet) }
             tf[('q1', symbol)] = {'q2'}
             return NFA(tf, 'q1', {'q2'})
 
-        def pre_process(regex):
+        def pre_process(regex: Regex) -> Regex:
             first_char = regex[0]
             if first_char in operators:
                 raise ValueError("Regex cannot start with '{}'.".format(first_char))
@@ -426,10 +427,10 @@ class NFA(_FSA):
             return processed
 
         
-        machine_stack = []
+        machine_stack: List[NFA] = []
         operator_stack = ['sentinel']
         
-        def binary_operate():
+        def binary_operate() -> None:
             right_operand = machine_stack.pop()
             left_operand = machine_stack.pop()
             machine = operator_to_operation[operator_stack.pop()](left_operand, right_operand)
