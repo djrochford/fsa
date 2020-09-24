@@ -278,12 +278,12 @@ class NFA(_FSA):
         empty: FrozenSet[State] = frozenset()
         return empty.union(*[frozenset(get_successor(state, symbol)) for state in state_set])
 
-    def _add_epsilons(self, state_set: AbstractSet[State]) -> AbstractSet[State]:
+    def _add_epsilons(self, state_set: AbstractSet[State]) -> FrozenSet[State]:
         epsilon_neighbours = self._get_successors(state_set, '')
         while epsilon_neighbours - state_set != set():
             state_set = state_set | epsilon_neighbours
             epsilon_neighbours = self._get_successors(epsilon_neighbours, '') 
-        return state_set
+        return frozenset(state_set)
 
     def _transition(self, state_set: AbstractSet[State], symbol: Symbol):
         return self._add_epsilons(self._get_successors(state_set, symbol))
@@ -303,18 +303,25 @@ class NFA(_FSA):
         the time complexity of this method is exponential in the number of states of the NFA. 
         Don't determinize big NFAs."""
         # powerset code an itertools recipe, from https://docs.python.org/3/library/itertools.html#recipes
-        # (minor adjustment to make the output a set of sets)
+        # (minor modification to  make the return a set of frozensets).
         def powerset(iterable: Iterable) -> Set[FrozenSet]:
             s = list(iterable)
-            return {frozenset(combo) for combo in chain.from_iterable(combinations(s, r) for r in range(len(s)+1))}
+            return {frozenset(item) for item in chain.from_iterable(combinations(s, r) for r in range(len(s)+1))}
+
+        def stringify(states: Iterable) -> str:
+            states_list = list(states)
+            states_list.sort()
+            return "".join(states_list)
+
         state_sets = powerset(self.states)
         determinized_tf = {}
         determinized_accept = set()
         for (state_set, symbol) in product(state_sets, self._alphabet):
-            determinized_tf[(str(state_set), symbol)] = str(self._transition(state_set, symbol))
-            if state_set & self.accept_states:
-                determinized_accept.add(str(state_set))
-        determinized_start = str(self._add_epsilons({self._start_state}))
+            determinzed_state = stringify(state_set)
+            determinized_tf[(determinzed_state, symbol)] = stringify(self._transition(state_set, symbol))
+            if set(state_set) & self.accept_states:
+                determinized_accept.add(determinzed_state)
+        determinized_start = stringify(self._add_epsilons({self._start_state}))
         return DFA(determinized_tf, determinized_start, determinized_accept)
 
 

@@ -260,16 +260,7 @@ class TestNFA(unittest.TestCase):
         self.assertIsInstance(d1, DFA)
         self.assertEqual(
             d1.states,
-            {
-                frozenset(),
-                frozenset({'q1'}),
-                frozenset({'q2'}),
-                frozenset({'q3'}),
-                frozenset({'q1', 'q2'}),
-                frozenset({'q1', 'q3'}),
-                frozenset({'q2', 'q3'}),
-                frozenset({'q1', 'q2', 'q3'})
-            }
+            {"", "q1", "q2", "q3", "q1q2", "q1q3", "q2q3", "q1q2q3"}
         )
         self.assertTrue(d1.accepts(''))
         self.assertTrue(d1.accepts('a'))
