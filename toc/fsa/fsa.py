@@ -326,7 +326,8 @@ class NFA(_FSA):
                 NfaTransitionFunction, self._transition_function
             )
             return self._transition_function.get((state, sym), frozenset())
-        return frozenset.union(
+        empty: FrozenSet[State] = frozenset()
+        return empty.union(
             *[frozenset(get_successor(state, symbol)) for state in state_set]
         )
 
@@ -408,7 +409,8 @@ class NFA(_FSA):
                 set(printable) - {'(', ')', '|', '*'}
             )
     ) -> "NFA":
-        """Takes a regular expression and an alphabet (i.e., a set of
+        """
+        Takes a regular expression and an alphabet (i.e., a set of
         one-character strings) as input; returns an NFA that recognises the
         language defined by that regular expression and that alphabet.
         
@@ -481,65 +483,92 @@ class NFA(_FSA):
         )
 
         def fit_empty(empty: Regex) -> NFA:
-            tf: NfaTransitionFunction = {pair: set() for pair in product({'q1'}, alphabet)}
+            tf: NfaTransitionFunction = {
+                pair: set() for pair in product({'q1'}, alphabet)
+            }
             accept_states = set() if empty == 'Ø' else {'q1'}
             return NFA(tf, 'q1', accept_states)
 
         def fit_symbol(symbol: Symbol) -> NFA:
-            tf: MutableNfaTF = { pair: set() for pair in product({'q1', 'q2'}, alphabet) }
+            tf: MutableNfaTF = {
+                pair: set() for pair in product({'q1', 'q2'}, alphabet)
+            }
             tf[('q1', symbol)] = {'q2'}
             return NFA(tf, 'q1', {'q2'})
 
         def pre_process(regex: Regex) -> Regex:
             first_char = regex[0]
             if first_char in operators:
-                raise ValueError("Regex cannot start with '{}'.".format(first_char))
+                raise ValueError(f"Regex cannot start with '{first_char}'.")
             processed = ''
             paren_count = 0
             for char in regex:
                 if char in alphabet or char == '(':
                     if len(processed) > 0:
-                        processed += '•' if processed[-1] not in {'(', '|'} else ''
+                        processed += (
+                            '•' if processed[-1] not in {'(', '|'}
+                            else ''
+                        )
                 if char not in alphabet and char not in not_symbols:
-                    raise ValueError("Regex contains character '{}' that is not in alphabet and not an accepted regex character.".format(char))
+                    raise ValueError(
+                        f"Regex contains character '{char}' that is not in "
+                        "alphabet and not an accepted regex character."
+                    )
                 if char in operators and processed[-1] in {'|', '•'}:
-                    raise ValueError("Regex contains binary operator followed by an operator; not cool.")
+                    raise ValueError(
+                        "Regex contains binary operator followed by an "
+                        "operator; not cool."
+                    )
                 if char == '(':
                     paren_count += 1
                 if char == ')':
                     paren_count -= 1
                 if paren_count < 0:
-                    raise ValueError("Right parenthesis occurs in regex withour matching left parenthesis.")
+                    raise ValueError(
+                        "Right parenthesis occurs in regex withour matching "
+                        "left parenthesis."
+                    )
                 processed += char
             if paren_count > 0:
-                raise ValueError("Left parenthesis occurs in regex without matching right parenthesis.")
+                raise ValueError(
+                    "Left parenthesis occurs in regex without matching right "
+                    "parenthesis."
+                )
             return processed
 
-        
         machine_stack: List[NFA] = []
         operator_stack = ['sentinel']
-        
+
         def binary_operate() -> None:
             right_operand = machine_stack.pop()
             left_operand = machine_stack.pop()
-            machine = operator_to_operation[operator_stack.pop()](left_operand, right_operand)
+            machine = operator_to_operation[operator_stack.pop()](
+                left_operand, right_operand
+            )
             machine_stack.append(machine)
 
         regex = pre_process(regex)
         for char in regex:
-            if char == 'Ø' or char == '€':
+            if char in empties:
                 machine_stack.append(fit_empty(char))
             elif char in alphabet:
                 machine_stack.append(fit_symbol(char))
             elif char == '*':
                 machine_stack[-1] = machine_stack[-1].star()
             elif char in operators:
-                compare = lambda operator: operators.index(operator) - operators.index(operator_stack[-1])
+                def compare(operator):
+                    return (
+                        operators.index(operator)
+                        - operators.index(operator_stack[-1])
+                    )
                 if operator_stack[-1] in parentheses or compare(char) > 0:
                     operator_stack.append(char)
                 else:
-                    while operator_stack[-1] not in parentheses and compare(char) <= 0:
-                       binary_operate()
+                    while (
+                            operator_stack[-1] not in parentheses
+                            and compare(char) <= 0
+                    ):
+                        binary_operate()
                     operator_stack.append(char)
             elif char == '(':
                 operator_stack.append(char)
