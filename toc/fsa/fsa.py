@@ -586,31 +586,58 @@ DfaTransitionFunction = Mapping[Tuple[State, Symbol], State]
 
 
 class DFA(_FSA):
-    """A deterministic finite automaton class. Takes three parameters: a transition function, a start state and a set of accept states, in that order.
+    """
+    A deterministic finite automaton class. Takes three parameters: a
+    transition function, a start state and a set of accept states, in that
+    order.
 
-    The transition function should be specified as a dictionary with tuple keys. These keys implicitly define the dfa's state-set and alphabet; the first elements of the tuples represent the fsa's states, and the second elements are the symbols in the alphabet.
+    The transition function should be specified as a dictionary with tuple
+    keys. These keys implicitly define the dfa's state-set and alphabet; the
+    first elements of the tuples represent the fsa's states, and the second
+    elements are the symbols in the alphabet.
 
-    The dfa expects the symbols of the alphabet to be one character strings. States can be anything hashable. (Note that, for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+    The dfa expects the symbols of the alphabet to be one character strings.
+    States can be anything hashable. (Note that, for reasons of hashability,
+    you'll need to use frozensets, rather than sets, if you want to have sets
+    as states.)
 
-    The class will raise a ValueError exception on instantiation if any of the following are true:
-      * the start state is not a member of the set of states inferred from the transition function;
-      * the set of accept states is not a subset of the set of states inferred from the transition function;
-      * the range of the transition function is not a subset of the set of states inferred from the transition function;
-      * a member of the alphabet inferred from the transition function is not a one-character string;
-      * the transition function is missing a case -- i.e., it is not the case that every pair of a state and a symbol is in the domain of the transition function.
-    The exception message will specify which of these above conditions things triggered the exception, and which states/symbols are the source of the problem."""
-   
+    The class will raise a ValueError exception on instantiation if any of th
+     following are true:
+      * the start state is not a member of the set of states inferred from the
+      transition function;
+      * the set of accept states is not a subset of the set of states inferred
+      from the transition function;
+      * the range of the transition function is not a subset of the set of
+      states inferred from the transition function;
+      * a member of the alphabet inferred from the transition function is not a
+      one-character string;
+      * the transition function is missing a case -- i.e., it is not the case
+      that every pair of a state and a symbol is in the domain of the
+      transition function.
+    The exception message will specify which of these above conditions things
+    triggered the exception, and which states/symbols are the source of the
+    problem.
+    """
+
     def __or__(self, other: "DFA") -> "DFA":
-        """Let A be the language recognised by dfa1, and B be the language recognized by dfa2. `dfa1 | dfa2` returns a dfa that recognizes A union B. The states of dfa1 | dfa2 are ordered pairs of states from dfa1 and dfa2. There is no problem with the input DFAs having different alphabets."""
-
+        """
+        Let A be the language recognised by dfa1, and B be the language
+        recognized by dfa2. `dfa1 | dfa2` returns a dfa that recognizes A union
+        B. The states of dfa1 | dfa2 are ordered pairs of states from dfa1 and
+        dfa2. There is no problem with the input DFAs having different
+        alphabets.
+        """
         union_alphabet = self.alphabet | other.alphabet
-        def maybe_add_state(dfa1: DFA, dfa2: DFA) -> Tuple[FrozenSet[State], DfaTransitionFunction]:
+
+        def maybe_add_state(
+                dfa1: DFA, dfa2: DFA
+        ) -> Tuple[FrozenSet[State], DfaTransitionFunction]:
             new_tf = dfa1.transition_function.copy()
             new_states = dfa1.states.copy()
             extra_symbols = dfa2.alphabet - dfa1.alphabet
             if extra_symbols != set():
                 error_state = _get_new_state(dfa1.states)
-                new_states = dfa1.states | { error_state }
+                new_states = dfa1.states | {error_state}
                 for symbol in union_alphabet:
                     new_tf[(error_state, symbol)] = error_state
                 for symbol in extra_symbols:
@@ -622,13 +649,31 @@ class DFA(_FSA):
         state_pairs = product(self_states, other_states)
         union_transition_function = {}
         for (state1, state2), symbol in product(state_pairs, union_alphabet):
-            union_transition_function[(state1 + state2, symbol)] = self_tf[(state1, symbol)] + other_tf[(state2, symbol)]
+            union_transition_function[(state1 + state2, symbol)] = (
+                self_tf[(state1, symbol)] + other_tf[(state2, symbol)]
+            )
         union_start_state = self.start_state + other.start_state
-        union_accept_states = {_stringify(item) for item in set(product(self.accept_states, other_states)) | set(product(self_states, other.accept_states))}
-        return DFA(union_transition_function, union_start_state, union_accept_states)
+        union_accept_states = {
+            _stringify(item) for item in (
+                set(product(self.accept_states, other_states))
+                | set(product(self_states, other.accept_states))
+            )
+        }
+        return DFA(
+            union_transition_function, union_start_state, union_accept_states
+        )
 
     def __add__(self, other: "DFA") -> "DFA":
-        """Let A be the language recognised by dfa1, B be the language recognised by dfa2. `dfa1 + dfa2` returns a DFA that recognises the set of all concatenations of strings in A with strings in B. This DFA operator is parasitic on the NFA operator; it converts the input DFAs into NFAs, uses the NFA '+', then converts the result back to a DFA. That makes for a relatively simple but, sadly, computationally expensive algorith. For that reason, I recommend you don't `+` dfas with large numbers of states."""
+        """
+        Let A be the language recognised by dfa1, B be the language recognised
+        by dfa2. `dfa1 + dfa2` returns a DFA that recognises the set of all
+        concatenations of strings in A with strings in B. This DFA operator is
+        parasitic on the NFA operator; it converts the input DFAs into NFAs,
+        uses the NFA '+', then converts the result back to a DFA. That makes
+        for a relatively simple but, sadly, computationally expensive algorith.
+        For that reason, I recommend you don't `+` dfas with large numbers of
+        states.
+        """
         return (self.non_determinize() + other.non_determinize()).determinize()
 
     def _gnfize(self) -> _GNFA:
@@ -644,8 +689,10 @@ class DFA(_FSA):
         gnfa_tf[(gnfa_start, self.start_state)] = '€'
         for state in self.accept_states:
             gnfa_tf[(state, gnfa_accept)] = '€'
-        for state1, state2 in product(self.states | {gnfa_start}, self.states | {gnfa_accept}):
-            if not (state1, state2) in gnfa_tf.keys():
+        for state1, state2 in product(
+                self.states | {gnfa_start}, self.states | {gnfa_accept}
+        ):
+            if (state1, state2) not in gnfa_tf:
                 gnfa_tf[(state1, state2)] = 'Ø'
         return _GNFA(gnfa_tf, set(self.states), gnfa_start, gnfa_accept)
 
@@ -661,24 +708,41 @@ class DFA(_FSA):
         )
 
     def accepts(self, string: str) -> bool:
-        """`my_dfa.accepts("some string")` returns `True` if my_dfa accepts "some string", and `False` otherwise. Will raise a ValueError exception is the string contains symbols that aren't in the DFA's alphabet."""
+        """
+        `my_dfa.accepts("some string")` returns `True` if my_dfa accepts "some
+        string", and `False` otherwise. Will raise a ValueError exception is
+        the string contains symbols that aren't in the DFA's alphabet.
+        """
         _check_input(string=string, alphabet=self.alphabet)
         current_state = self.start_state
         for symbol in string:
             current_state = self.transition_function[(current_state, symbol)]
-        return False if current_state not in self.accept_states else True
+        return current_state in self.accept_states
 
     def encode(self) -> Regex:
-        """Let A be the language accepted by dfa. `dfa.encode()` returns a regex string that generates A. That regex string is liable to be much more complicated than necessary; maybe I'll figure out how to improve on average simplicity, eventually. Note that the regex language I use is much simpler than the standard python regex language (though it is technically equivalent in expressive power)."""
+        """
+        Let A be the language accepted by dfa. `dfa.encode()` returns a regex
+        string that generates A. That regex string is liable to be much more
+        complicated than necessary; maybe I'll figure out how to improve on
+        average simplicity, eventually. Note that the regex language I use is
+        much simpler than the standard python regex language.
+        """
         gnfa = self._gnfize()
         while len(gnfa.states) > 2:
             gnfa = gnfa.reduce()
         return gnfa.transition_function[(gnfa.start_state, gnfa.accept_state)]
 
     def non_determinize(self) -> NFA:
-        """Convenience method that takes a DFA instance and returns an NFA instance."""
-        nd_transition_function = {key: {value} for key, value in self.transition_function.items()}
-        return NFA(nd_transition_function, self.start_state, self.accept_states)
+        """
+        Convenience method that takes a DFA instance and returns an NFA
+        instance.
+        """
+        nd_transition_function = {
+            key: {value} for key, value in self.transition_function.items()
+        }
+        return NFA(
+            nd_transition_function, self.start_state, self.accept_states
+        )
 
 
 def _stringify(states: Iterable[State]) -> str:
