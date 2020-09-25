@@ -126,11 +126,11 @@ class _GNFA:
             return False
 
         def regex_star(regex: Regex) -> Regex:
-            if regex in ['Ø', '€']:
+            if regex in EMPTIES:
                 return '€'
             if len(regex) == 1:
                 return regex + '*'
-            return "({})*".format(regex)
+            return f"({regex})*"
 
         def regex_concat(regex1: Regex, regex2: Regex) -> Regex:
             if regex1 == 'Ø' or regex2 == 'Ø':
@@ -259,9 +259,10 @@ class NFA(_FSA):
         return NFA(concat_tf, new_self.start_state, new_other.accept_states)
 
     def _combine(self, other: "NFA") -> Tuple["NFA", "NFA", MutableNfaTF]:
+        def prime(state: State):
+            return state + '`'
+
         def copy(nfa: NFA) -> NFA:
-            def prime(state: State):
-                return state + '`'
             copy_tf = {}
             for state, symbol in nfa.transition_function.keys():
                 copy_tf[(prime(state), symbol)] = {
@@ -271,7 +272,7 @@ class NFA(_FSA):
             copy_accept = {prime(x) for x in nfa.accept_states}
             return NFA(copy_tf, copy_start, copy_accept)
         overlap = self.states & other.states
-        while overlap != set():
+        while overlap:
             other = copy(other)
             overlap = self.states & other.states
 
@@ -279,13 +280,14 @@ class NFA(_FSA):
                 nfa1: NFA, nfa2: NFA
         ) -> Tuple[NfaTransitionFunction, NfaTransitionFunction]:
             def add_one_way(nfa1: NFA, nfa2: NFA) -> NfaTransitionFunction:
-                new_tf = nfa1.transition_function.copy()
+                new_tf = nfa1.transition_function
                 extra_symbols = nfa2.alphabet - nfa1.alphabet
-                if extra_symbols != set():
+                if extra_symbols:
                     for pair in product(nfa1.states, extra_symbols):
                         new_tf[pair] = set()
                 return new_tf
             return add_one_way(nfa1, nfa2), add_one_way(nfa2, nfa1)
+
         self_tf, other_tf = add_empty_transitions(self, other)
         new_self = NFA(self_tf, self.start_state, self.accept_states)
         new_other = NFA(other_tf, other.start_state, other.accept_states)
@@ -309,9 +311,8 @@ class NFA(_FSA):
         transition_range: Set[Optional[AbstractSet[State]]] = set.union(
             *self.transition_function.values()
         )
-        also_bad_range = transition_range - self.states
         _error_message(
-            bad_set=also_bad_range,
+            bad_set=transition_range - self.states,
             message_singular=("State {} in the range of the transition "
                               "function is not in the fsa's state set."),
             message_plural=("States {} in the range of the transition "
@@ -326,14 +327,14 @@ class NFA(_FSA):
                 NfaTransitionFunction, self._transition_function
             )
             return self._transition_function.get((state, sym), frozenset())
-        empty: FrozenSet[State] = frozenset()
+        empty: FrozenSet[State] = frozenset()  # This avoids a mypy bug.
         return empty.union(
             *[frozenset(get_successor(state, symbol)) for state in state_set]
         )
 
     def _add_epsilons(self, state_set: AbstractSet[State]) -> FrozenSet[State]:
         epsilon_neighbours = self._get_successors(state_set, '')
-        while epsilon_neighbours - state_set != set():
+        while epsilon_neighbours - state_set:
             state_set = state_set | epsilon_neighbours
             epsilon_neighbours = self._get_successors(epsilon_neighbours, '')
         return frozenset(state_set)
@@ -393,7 +394,7 @@ class NFA(_FSA):
         concatenating any number of members of A.
         """
         star_start = _get_new_state(self.states)
-        star_tf = self.transition_function.copy()
+        star_tf = self.transition_function
         star_tf[(star_start, '')] = {self.start_state}
         for symbol in self.alphabet:
             star_tf[(star_start, symbol)] = set()
@@ -634,8 +635,8 @@ class DFA(_FSA):
         def maybe_add_state(
                 dfa1: DFA, dfa2: DFA
         ) -> Tuple[FrozenSet[State], DfaTransitionFunction]:
-            new_tf = dfa1.transition_function.copy()
-            new_states = dfa1.states.copy()
+            new_tf = dfa1.transition_function
+            new_states = dfa1.states
             extra_symbols = dfa2.alphabet - dfa1.alphabet
             if extra_symbols:
                 error_state = _get_new_state(dfa1.states)
