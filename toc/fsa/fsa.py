@@ -104,9 +104,14 @@ class _GNFA:
         self.body_states = body_states
         self.start_state = start_state
         self.accept_state = accept_state
-        self.states = self.body_states | {self.start_state} | {self.accept_state}
+        self.states = (
+            self.body_states | {self.start_state} | {self.accept_state}
+        )
 
     def reduce(self) -> "_GNFA":
+        """
+        Output a GNFA equivalent to `self` with one less state in it.
+        """
         def union_main_scope(regex: Regex) -> bool:
             paren_count = 0
             for char in regex:
@@ -120,37 +125,31 @@ class _GNFA:
             return False
 
         def regex_star(regex: Regex) -> Regex:
-            if regex == 'Ø' or regex == '€':
-                return_value = '€'
-            elif len(regex) == 1:
-                return_value = regex + '*'
-            else:
-                return_value = "({})*".format(regex)
-            return return_value
+            if regex in ['Ø', '€']:
+                return '€'
+            if len(regex) == 1:
+                return regex + '*'
+            return "({})*".format(regex)
 
         def regex_concat(regex1: Regex, regex2: Regex) -> Regex:
             if regex1 == 'Ø' or regex2 == 'Ø':
-                return_value = 'Ø'
-            elif regex1 == '€':
-                return_value = regex2
-            elif regex2 == '€':
-                return_value = regex1
-            else:
-                if union_main_scope(regex1):
-                    regex1 = '({})'.format(regex1)
-                if union_main_scope(regex2):
-                    regex2 = '({})'.format(regex2)
-                return_value = regex1 + regex2
-            return return_value
+                return 'Ø'
+            if regex1 == '€':
+                return regex2
+            if regex2 == '€':
+                return regex1
+            if union_main_scope(regex1):
+                regex1 = f'({regex1})'
+            if union_main_scope(regex2):
+                regex2 = f'({regex2})'
+            return regex1 + regex2
 
         def regex_union(regex1: Regex, regex2: Regex) -> Regex:
             if regex1 == "Ø":
-                return_value = regex2
-            elif regex2 == "Ø":
-                return_value = regex1
-            else:
-                return_value = "{}|{}".format(regex1, regex2)
-            return return_value
+                return regex2
+            if regex2 == "Ø":
+                return regex1
+            return f"{regex1}|{regex2}"
 
         rip = self.body_states.pop()
         r2 = self.transition_function[(rip, rip)]
@@ -160,9 +159,17 @@ class _GNFA:
             for state2 in self.states - {self.start_state, rip}:
                 r3 = self.transition_function[(rip, state2)]
                 r4 = self.transition_function[(state1, state2)]
-                new_regex = regex_union(regex_concat(regex_concat(r1, regex_star(r2)), r3), r4)
+                new_regex = regex_union(
+                    regex_concat(regex_concat(r1, regex_star(r2)), r3),
+                    r4
+                )
                 reduced_tf[(state1, state2)] = new_regex
-        return _GNFA(reduced_tf, self.body_states - {rip}, self.start_state, self.accept_state)
+        return _GNFA(
+            reduced_tf,
+            self.body_states - {rip},
+            self.start_state,
+            self.accept_state
+        )
 
 
 NfaTransitionFunction = Mapping[Tuple[State, Symbol], AbstractSet[State]]
