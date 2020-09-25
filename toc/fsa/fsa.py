@@ -1,7 +1,7 @@
 """
 File containing DFA and NFA public classes
 """
-from collections.abc import Sequence
+import collections.abc
 from itertools import product, chain, combinations
 from string import printable
 from typing import (
@@ -15,7 +15,8 @@ from typing import (
     Optional,
     Set,
     Tuple,
-    Union
+    Union,
+    cast
 )
 
 from .base import (
@@ -175,70 +176,99 @@ class _GNFA:
 NfaTransitionFunction = Mapping[Tuple[State, Symbol], AbstractSet[State]]
 MutableNfaTF = MutableMapping[Tuple[State, Symbol], Set[State]]
 
+
 class NFA(_FSA):
-    """A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state 
-    and a set of accept states, in that order.
+    """
+    A nondeterministic finite automaton class. Takes three parameters: a
+    transition function, a start state and a set of accept states.
 
-    The transition function should be specified as a dictionary with tuple keys. 
-    These keys implicitly define the nfa's state-set and alphabet; the first elements of the tuples represent the
-    nfa's states, and the second elements are the symbols in the alphabet.
+    The transition function should be specified as a dictionary with tuple
+    keys. These keys implicitly define the nfa's state-set and alphabet; the
+    first elements of the tuples represent the nfa's states, and the second
+    elements are the symbols in the alphabet.
 
-    The nfa expects the symbols of the alphabet to be one character strings. States can be anything hashable. (Note that,
-    for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+    The nfa expects the symbols of the alphabet to be one character strings.
+    States can be anything hashable. (Note that, for reasons of hashability,
+    you'll need to use frozensets, rather than sets, if you want to have sets
+    as states.)
 
-    The domain of the transition function is the power-set of the nfa's state set --- i.e., the values of the transition function
-    dictionary should be sets (or frozensets). The empty set is a valid value; in fact, you are required to specify that the successor set
-    for a given state-symbol pair is the empty set, if it is.
+    The domain of the transition function is the power-set of the nfa's state
+    set --- i.e., the values of the transition function dictionary should be
+    sets (or frozensets). The empty set is a valid value; in fact, you are
+    required to specify that the successor set for a given state-symbol pair is
+    the empty set, if it is.
 
-    You can define epsilon-moves by using the empty string in place of an alphabet symbol in the transition function.
-    Note that the empty string will not be inferred to be a member of the alphabet (and hence the checks below will work as
-    you would expect).
+    You can define epsilon-moves by using the empty string in place of an
+    alphabet symbol in the transition function. Note that the empty string will
+    not be inferred to be a member of the alphabet (and hence the checks below
+    will work as you would expect).
 
-    The class will raise a ValueError exception on instantiation if any of the following are true:
-        1. the start state is not a member of the set of states inferred from the transition function;
-        2. the set of accept states is not a subset of the set of states inferred from the transition function;
-        3. a member of the alphabet inferred from the transition function is not a one-character string;
+    The class will raise a ValueError exception on instantiation if any of the
+    following are true:
+        1. the start state is not a member of the set of states inferred from
+        the transition function;
+        2. the set of accept states is not a subset of the set of states
+        inferred from the transition function;
+        3. a member of the alphabet inferred from the transition function is
+        not a one-character string;
         4. a member of the transition function's range is not a set;
-        5. the range of the transition function is not a subset of the power set of states inferred from the transition function;
-        6. the transition function is missing cases -- i.e., it is not the case that every pair of a state and a symbol
-        is in the domain of the transition function.
-    The exception message will specify which of these six conditions things triggered the exception, and which states/symbols
-    are the source of the problem."""
+        5. the range of the transition function is not a subset of the power
+        set of states inferred from the transition function;
+        6. the transition function is missing cases -- i.e., it is not the case
+        that every pair of a state and a symbol is in the domain of the
+        transition function.
+    The exception message will specify which of these six conditions things
+    triggered the exception, and which states/symbols are the source of the
+    problem.
+    """
 
     def __or__(self, other: "NFA") -> "NFA":
-        """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 | nfa2` returns an nfa that 
-        recognizes A union B. The cardinality of the state-set of nfa1 | nfa2 is the cardinality of the state set of nfa1
-        plus the cardinality of the state-set of nfa2 plus 1.
+        """
+        Let A be the language recognised by nfa1, and B be the language
+        recognized by nfa2. `nfa1 | nfa2` returns an nfa that recognizes A
+        union B. The cardinality of the state-set of nfa1 | nfa2 is the
+        cardinality of the state set of nfa1 plus the cardinality of the
+        state-set of nfa2 plus 1.
 
-        There is no problem with the input NFAs having different alphabets."""
+        There is no problem with the input NFAs having different alphabets.
+        """
         new_self, new_other, union_tf = self._combine(other)
         union_start_state = _get_new_state(new_self.states | new_other.states)
-        union_tf[(union_start_state, '')] = { new_self.start_state, new_other.start_state }
+        union_tf[(union_start_state, '')] = {
+            new_self.start_state, new_other.start_state
+        }
         for symbol in new_self.alphabet | new_other.alphabet:
             union_tf[(union_start_state, symbol)] = set()
         union_accept_states = new_self.accept_states | new_other.accept_states
         return NFA(union_tf, union_start_state, union_accept_states)
 
     def __add__(self, other: "NFA") -> "NFA":
-        """Let A be the language recognised by nfa1, and B be the language recognized by nfa2. `nfa1 + nfa2` returns an nfa that
-        recognizes A concat B -- i.e., the language consisten of the set of strins of the form a concat b, where a is an element of A
-        and b is an element of B. Note that a this `+` operation is not commutative."""
+        """
+        Let A be the language recognised by nfa1, and B be the language
+        recognized by nfa2. `nfa1 + nfa2` returns an nfa that recognizes A
+        concat B -- i.e., the language consisten of the set of strins of the
+        form a concat b, where a is an element of A and b is an element of B.
+        Note that this `+` operation is not commutative.
+        """
         new_self, new_other, concat_tf = self._combine(other)
         for state in new_self.accept_states:
-            if (state, '') in concat_tf.keys():
+            if (state, '') in concat_tf:
                 concat_tf[(state, '')].add(new_other.start_state)
             else:
-                concat_tf[(state, '')] = { new_other.start_state }
+                concat_tf[(state, '')] = {new_other.start_state}
         return NFA(concat_tf, new_self.start_state, new_other.accept_states)
 
     def _combine(self, other: "NFA") -> Tuple["NFA", "NFA", MutableNfaTF]:
         def copy(nfa: NFA) -> NFA:
-            prime = lambda state : str(state) + '`'
+            def prime(state: State):
+                return state + '`'
             copy_tf = {}
             for state, symbol in nfa.transition_function.keys():
-                copy_tf[(prime(state), symbol)] = { prime(x) for x in nfa.transition_function[(state, symbol)] }
+                copy_tf[(prime(state), symbol)] = {
+                    prime(x) for x in nfa.transition_function[(state, symbol)]
+                }
             copy_start = prime(nfa.start_state)
-            copy_accept = { prime(x) for x in nfa.accept_states }
+            copy_accept = {prime(x) for x in nfa.accept_states}
             return NFA(copy_tf, copy_start, copy_accept)
         overlap = self.states & other.states
         while overlap != set():
@@ -265,7 +295,10 @@ class NFA(_FSA):
         return new_self, new_other, combination_tf
 
     def _good_range(self) -> None:
-        bad_range = { x for x in self.transition_function.values() if type(x) != set and type(x) != frozenset }
+        bad_range = {
+            x for x in self.transition_function.values()
+            if not isinstance(x, collections.abc.Set)
+        }
         _error_message(
             bad_set=bad_range,
             message_singular=("Value {} in the range of the transition "
@@ -273,7 +306,9 @@ class NFA(_FSA):
             message_plural=("Values {} in the range of the transition "
                             "function are not sets.")
         )
-        transition_range: Set[Optional[AbstractSet[State]]] = set.union(*self.transition_function.values())
+        transition_range: Set[Optional[AbstractSet[State]]] = set.union(
+            *self.transition_function.values()
+        )
         also_bad_range = transition_range - self.states
         _error_message(
             bad_set=also_bad_range,
@@ -283,99 +318,150 @@ class NFA(_FSA):
                             "function are not in the fsa's state set.")
         )
 
-    def _get_successors(self, state_set: AbstractSet[State], symbol: Symbol) -> FrozenSet[State]:
-        get_successor = lambda state,  s: self._transition_function.get((state, s), frozenset())
-        empty: FrozenSet[State] = frozenset()
-        return empty.union(*[frozenset(get_successor(state, symbol)) for state in state_set])
+    def _get_successors(
+            self, state_set: AbstractSet[State], symbol: Symbol
+    ) -> FrozenSet[State]:
+        def get_successor(state: State, sym: Symbol) -> AbstractSet[State]:
+            self._transition_function = cast(
+                NfaTransitionFunction, self._transition_function
+            )
+            return self._transition_function.get((state, sym), frozenset())
+        return frozenset.union(
+            *[frozenset(get_successor(state, symbol)) for state in state_set]
+        )
 
     def _add_epsilons(self, state_set: AbstractSet[State]) -> FrozenSet[State]:
         epsilon_neighbours = self._get_successors(state_set, '')
         while epsilon_neighbours - state_set != set():
             state_set = state_set | epsilon_neighbours
-            epsilon_neighbours = self._get_successors(epsilon_neighbours, '') 
+            epsilon_neighbours = self._get_successors(epsilon_neighbours, '')
         return frozenset(state_set)
 
     def _transition(self, state_set: AbstractSet[State], symbol: Symbol):
         return self._add_epsilons(self._get_successors(state_set, symbol))
 
     def accepts(self, string: str) -> bool:
-        """Determines whether nfa accepts input string. Will raise a ValueError exception is the string contains
-        symbols that aren't in the nfa's alphabet."""
+        """
+        Determines whether nfa accepts input string. Will raise a ValueError
+        exception is the string contains symbols that aren't in the nfa's
+        alphabet.
+        """
         _check_input(string=string, alphabet=self.alphabet)
         current_states = self._add_epsilons({self.start_state})
         for symbol in string:
             current_states = self._transition(current_states, symbol)
-        return False if current_states & self.accept_states == set() else True
+        return not current_states & self.accept_states == set()
 
     def determinize(self) -> "DFA":
-        """Returns a DFA that recognizes the same same language as the NFA instance.
-        WARNING: The set of DFA states is the power-set of the set of NFA states. For related reasons,
-        the time complexity of this method is exponential in the number of states of the NFA. 
-        Don't determinize big NFAs."""
-        # powerset code an itertools recipe, from https://docs.python.org/3/library/itertools.html#recipes
+        """Returns a DFA that recognizes the same same language as the NFA
+        instance.
+        WARNING: The set of DFA states is the power-set of the set of NFA
+        states. For related reasons, the time complexity of this method is
+        exponential in the number of states of the NFA. Don't determinize big
+        NFAs.
+        """
+        # powerset code an itertools recipe, from
+        # https://docs.python.org/3/library/itertools.html#recipes
         # (minor modification to  make the return a set of frozensets).
         def powerset(iterable: Iterable) -> Set[FrozenSet]:
             s = list(iterable)
-            return {frozenset(item) for item in chain.from_iterable(combinations(s, r) for r in range(len(s)+1))}
+            return {
+                frozenset(item) for item in chain.from_iterable(
+                    combinations(s, r) for r in range(len(s)+1)
+                )
+            }
         state_sets = powerset(self.states)
         determinized_tf = {}
         determinized_accept = set()
         for (state_set, symbol) in product(state_sets, self._alphabet):
             determinzed_state = _stringify(state_set)
-            determinized_tf[(determinzed_state, symbol)] = _stringify(self._transition(state_set, symbol))
+            determinized_tf[(determinzed_state, symbol)] = _stringify(
+                self._transition(state_set, symbol)
+            )
             if set(state_set) & self.accept_states:
                 determinized_accept.add(determinzed_state)
-        determinized_start = _stringify(self._add_epsilons({self._start_state}))
+        determinized_start = _stringify(
+            self._add_epsilons({self._start_state})
+        )
         return DFA(determinized_tf, determinized_start, determinized_accept)
 
-
     def star(self) -> "NFA":
-        """Let A be the language recognised by nfa. `nfa.self()` returns an nfa that recognizes A* --
-        i.e., the set of all strings formed by concatenating any number of members of A."""
+        """
+        Let A be the language recognised by nfa. `nfa.self()` returns an nfa
+        that recognizes A* -- i.e., the set of all strings formed by
+        concatenating any number of members of A.
+        """
         star_start = _get_new_state(self.states)
         star_tf = self.transition_function.copy()
-        star_tf[(star_start, '')] = { self.start_state }
+        star_tf[(star_start, '')] = {self.start_state}
         for symbol in self.alphabet:
             star_tf[(star_start, symbol)] = set()
         for state in self.accept_states:
-            star_tf[(state, '')] = { self.start_state }
-        star_accepts = self.accept_states | { star_start }
+            star_tf[(state, '')] = {self.start_state}
+        star_accepts = self.accept_states | {star_start}
         return NFA(star_tf, star_start, star_accepts)
 
     @staticmethod
-    def fit(regex: Regex, alphabet: AbstractSet[Symbol] = set(printable) - {'(', ')', '|', '*'}) -> "NFA":
-        """Takes a regular expression and an alphabet (i.e., a set of one-character strings) as input; returns an NFA that recognises
-        the language defined by that regular expression and that alphabet.
+    def fit(
+            regex: Regex,
+            alphabet: AbstractSet[Symbol] = (
+                set(printable) - {'(', ')', '|', '*'}
+            )
+    ) -> "NFA":
+        """Takes a regular expression and an alphabet (i.e., a set of
+        one-character strings) as input; returns an NFA that recognises the
+        language defined by that regular expression and that alphabet.
         
-        The alphabet parameter is optional; it's default value is string.printable -- i.e., the set of "printable" characters,
-        which includes the standard ASCII letters and digits, and most common punctuation and white space.
+        The alphabet parameter is optional; it's default value is
+        string.printable -- i.e., the set of "printable" characters, which
+        includes the standard ASCII letters and digits, and most common
+        punctuation and white space.
 
-        Actually, that's not quite right -- the default value is string.printable *minus* parentheses, the vertical bar, the star symbol,
-        and the tilde, for reasons that I will explain presently.
+        Actually, that's not quite right -- the default value is
+        string.printable *minus* parentheses, the vertical bar, the star
+        symbol, and the tilde, for reasons that I will explain presently.
 
-        As of now, the syntax of the regular expressions that this method takes as input is very simple -- much simpler than the
-        standard python regular expresssions. All characters are intepreted as literals for symbols in the alphabet except for '(', '')',
-        '|', '*', '•', '€' and 'Ø'. The parentheses, vertical bar and star mean what you'd expect them to mean if you are familiar with 
-        regular expressions as written in programming languages. '•' (option-8 on a mac keyboard) means concatenation. 
-        You can leave concatentation implicit, as is usual; no need to write '•'' explicitly if you don't want to. But it gets used internally. 
-        '€' (option-shift-2) is used to match the empty string (because it kind of looks like an epsilon); there's no other way to match, 
-        for instance, {'', '0'} with the current syntax. (Quick challenge: it's not totally obvious how to match the empty string in normal python regex syntax either, 
-        though it can be done; give it a go.) 'Ø' (option-shift-o) represents the empty set; you can match to the empty language with it.
+        As of now, the syntax of the regular expressions that this method takes
+        as input is very simple -- much simpler than the standard python
+        regular expresssions. All characters are intepreted as literals for
+        symbols in the alphabet except for '(', '')', '|', '*', '•', '€' and
+        'Ø'. The parentheses, vertical bar and star mean what you'd expect
+        them to mean if you are familiar with regular expressions as written in
+        programming languages. '•' (option-8 on a mac keyboard) means
+        concatenation. You can leave concatentation implicit, as is usual; no
+        need to write '•'' explicitly if you don't want to. But it gets used
+        internally.'€' (option-shift-2) is used to match the empty string
+        (because it kind of looks like an epsilon); there's no other way to
+        match, for instance, {'', '0'} with the current syntax. (Quick
+        challenge: it's not totally obvious how to match the empty string in
+        normal python regex syntax either, though it can be done; give it a
+        go.) 'Ø' (option-shift-o) represents the empty set; you can match to
+        the empty language with it.
 
-        For reaons related to the above, the characters '(', ')', '|', '*', '•', '€' and 'Ø' cannot be symbols in the alphabet of the NFA.
-        (My apologies to speakers of Scandinavian languages for the last one; I am very against English chauvinism, but your letter is so very
-        close to the empty-set symbol. If, by some miracle, there is someone who cares about this, I will change the symbol for empty-set.)
+        For reaons related to the above, the characters '(', ')', '|', '*',
+        '•', '€' and 'Ø' cannot be symbols in the alphabet of the NFA. (My
+        apologies to speakers of Scandinavian languages for the last one; I am
+        very against English chauvinism, but your letter is so very close to
+        the empty-set symbol. If, by some miracle, there is someone who cares
+        about this, I will change the symbol for empty-set.)
 
-        In the absence of parentheses, the order of operations is: `*`, then `•`, then `|`.
+        In the absence of parentheses, the order of operations is: `*`, then
+        `•`, then `|`.
 
-        I realise the simplicity of the allowed syntax is lame; some day it might be better.
+        I realise the simplicity of the allowed syntax is lame; some day it
+        might be better.
 
-        The method uses a version of Dijkstra's shunting yard algorithm to parse the regex and build the NFA.
+        The method uses a version of Dijkstra's shunting yard algorithm to
+        parse the regex and build the NFA.
 
-        The method will raise a ValueError exception if any of the following conditions hold:
-            1. the alphabet contains any of the verboten characters -- i.e.,`(`, `)`, `|`, `*`, `•`, `€` and `Ø`,
-            2. the input regex string contains a character not in the alphabet, and not one of the above veboten characters,
-            3. the input regex contain a binary operator followed by an operator, or
+        The method will raise a ValueError exception if any of the following
+        conditions hold:
+            1. the alphabet contains any of the verboten characters -- i.e.,`(`
+               , `)`, `|`, `*`, `•`, `€` and `Ø`,
+            2. the input regex string contains a character not in the alphabet,
+            and not one of the above veboten characters,
+            3. the input regex contain a binary operator followed by an
+            operator, or
             4. the input regex does not have properly matching parentheses.
         """
         operators = ['sentinel', '|', '•', '*']
@@ -386,7 +472,7 @@ class NFA(_FSA):
         operator_to_operation = {
             '|': NFA.__or__,
             '•': NFA.__add__
-        }        
+        }
 
         _error_message(
             bad_set=set(not_symbols) & set(alphabet),
@@ -567,7 +653,7 @@ class DFA(_FSA):
 
 
 def _stringify(states: Iterable[State]) -> str:
-    if not isinstance(states, Sequence):
+    if not isinstance(states, collections.abc.Sequence):
         states = list(states)
         states.sort()
     return "".join(states)
