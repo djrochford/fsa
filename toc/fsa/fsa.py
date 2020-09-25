@@ -88,6 +88,7 @@ class _FSA(_Base):
 
 
 GnfaTransitionFunction = Mapping[Tuple[State, State], Regex]
+MutableGnfaTF = MutableMapping[Tuple[State, State], Regex]
 
 
 class _GNFA:
@@ -476,7 +477,7 @@ class DFA(_FSA):
       * the transition function is missing a case -- i.e., it is not the case that every pair of a state and a symbol is in the domain of the transition function.
     The exception message will specify which of these above conditions things triggered the exception, and which states/symbols are the source of the problem."""
    
-    def __or__(self, other: "DFA"):
+    def __or__(self, other: "DFA") -> "DFA":
         """Let A be the language recognised by dfa1, and B be the language recognized by dfa2. `dfa1 | dfa2` returns a dfa that recognizes A union B. The states of dfa1 | dfa2 are ordered pairs of states from dfa1 and dfa2. There is no problem with the input DFAs having different alphabets."""
 
         union_alphabet = self.alphabet | other.alphabet
@@ -503,12 +504,12 @@ class DFA(_FSA):
         union_accept_states = {stringify(item) for item in set(product(self.accept_states, other_states)) | set(product(self_states, other.accept_states))}
         return DFA(union_transition_function, union_start_state, union_accept_states)
 
-    def __add__(self, other):
+    def __add__(self, other: "DFA") -> "DFA":
         """Let A be the language recognised by dfa1, B be the language recognised by dfa2. `dfa1 + dfa2` returns a DFA that recognises the set of all concatenations of strings in A with strings in B. This DFA operator is parasitic on the NFA operator; it converts the input DFAs into NFAs, uses the NFA '+', then converts the result back to a DFA. That makes for a relatively simple but, sadly, computationally expensive algorith. For that reason, I recommend you don't `+` dfas with large numbers of states."""
         return (self.non_determinize() + other.non_determinize()).determinize()
 
-    def _gnfize(self):
-        gnfa_tf = {}
+    def _gnfize(self) -> _GNFA:
+        gnfa_tf: MutableGnfaTF = {}
         for state1, symbol in self.transition_function.keys():
             state2 = self.transition_function[(state1, symbol)]
             if (state1, state2) in gnfa_tf.keys():
@@ -525,7 +526,7 @@ class DFA(_FSA):
                 gnfa_tf[(state1, state2)] = 'Ø'
         return _GNFA(gnfa_tf, set(self.states), gnfa_start, gnfa_accept)
 
-    def _good_range(self):
+    def _good_range(self) -> None:
         transition_range = set(self.transition_function.values())
         bad_range = transition_range - self.states
         _error_message(
@@ -536,7 +537,7 @@ class DFA(_FSA):
                             "function are not in the fsa's state set.")
         )
 
-    def accepts(self, string):
+    def accepts(self, string: str) -> bool:
         """`my_dfa.accepts("some string")` returns `True` if my_dfa accepts "some string", and `False` otherwise. Will raise a ValueError exception is the string contains symbols that aren't in the DFA's alphabet."""
         _check_input(string=string, alphabet=self.alphabet)
         current_state = self.start_state
@@ -544,14 +545,14 @@ class DFA(_FSA):
             current_state = self.transition_function[(current_state, symbol)]
         return False if current_state not in self.accept_states else True
 
-    def encode(self):
+    def encode(self) -> Regex:
         """Let A be the language accepted by dfa. `dfa.encode()` returns a regex string that generates A. That regex string is liable to be much more complicated than necessary; maybe I'll figure out how to improve on average simplicity, eventually. Note that the regex language I use is much simpler than the standard python regex language (though it is technically equivalent in expressive power)."""
         gnfa = self._gnfize()
         while len(gnfa.states) > 2:
             gnfa = gnfa.reduce()
         return gnfa.transition_function[(gnfa.start_state, gnfa.accept_state)]
 
-    def non_determinize(self):
+    def non_determinize(self) -> NFA:
         """Convenience method that takes a DFA instance and returns an NFA instance."""
         nd_transition_function = {key: {value} for key, value in self.transition_function.items()}
         return NFA(nd_transition_function, self.start_state, self.accept_states)
