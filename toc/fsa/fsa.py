@@ -1,6 +1,7 @@
 """
 File containing DFA and NFA public classes
 """
+from collections.abc import Sequence
 from itertools import product, chain, combinations
 from string import printable
 from typing import (
@@ -8,7 +9,6 @@ from typing import (
     Container,
     FrozenSet,
     Iterable,
-    Iterator,
     List,
     Mapping,
     MutableMapping,
@@ -308,12 +308,6 @@ class NFA(_FSA):
         def powerset(iterable: Iterable) -> Set[FrozenSet]:
             s = list(iterable)
             return {frozenset(item) for item in chain.from_iterable(combinations(s, r) for r in range(len(s)+1))}
-
-        def stringify(states: Iterable) -> str:
-            states_list = list(states)
-            states_list.sort()
-            return "".join(states_list)
-
         state_sets = powerset(self.states)
         determinized_tf = {}
         determinized_accept = set()
@@ -464,6 +458,9 @@ class NFA(_FSA):
         return machine
 
 
+DfaTransitionFunction = Mapping[Tuple[State, Symbol], State]
+
+
 class DFA(_FSA):
     """A deterministic finite automaton class. Takes three parameters: a transition function, a start state and a set of accept states, in that order.
 
@@ -479,11 +476,11 @@ class DFA(_FSA):
       * the transition function is missing a case -- i.e., it is not the case that every pair of a state and a symbol is in the domain of the transition function.
     The exception message will specify which of these above conditions things triggered the exception, and which states/symbols are the source of the problem."""
    
-    def __or__(self, other):
+    def __or__(self, other: "DFA"):
         """Let A be the language recognised by dfa1, and B be the language recognized by dfa2. `dfa1 | dfa2` returns a dfa that recognizes A union B. The states of dfa1 | dfa2 are ordered pairs of states from dfa1 and dfa2. There is no problem with the input DFAs having different alphabets."""
 
         union_alphabet = self.alphabet | other.alphabet
-        def maybe_add_state(dfa1, dfa2):
+        def maybe_add_state(dfa1: DFA, dfa2: DFA) -> Tuple[FrozenSet[State], DfaTransitionFunction]:
             new_tf = dfa1.transition_function.copy()
             new_states = dfa1.states.copy()
             extra_symbols = dfa2.alphabet - dfa1.alphabet
@@ -498,13 +495,12 @@ class DFA(_FSA):
             return new_states, new_tf
         self_states, self_tf = maybe_add_state(self, other)
         other_states, other_tf = maybe_add_state(other, self)
-        union_states = product(self_states, other_states)
+        state_pairs = product(self_states, other_states)
         union_transition_function = {}
-        for pair in product(union_states, union_alphabet):
-            (state1, state2), symbol = pair
-            union_transition_function[pair] = (self_tf[(state1, symbol)], other_tf[(state2, symbol)])
-        union_start_state = (self.start_state, other.start_state)
-        union_accept_states = set(product(self.accept_states, other_states)) | set(product(self_states, other.accept_states))
+        for (state1, state2), symbol in product(state_pairs, union_alphabet):
+            union_transition_function[(state1 + state2, symbol)] = self_tf[(state1, symbol)] + other_tf[(state2, symbol)]
+        union_start_state = self.start_state + other.start_state
+        union_accept_states = {stringify(item) for item in set(product(self.accept_states, other_states)) | set(product(self_states, other.accept_states))}
         return DFA(union_transition_function, union_start_state, union_accept_states)
 
     def __add__(self, other):
@@ -560,3 +556,9 @@ class DFA(_FSA):
         nd_transition_function = {key: {value} for key, value in self.transition_function.items()}
         return NFA(nd_transition_function, self.start_state, self.accept_states)
 
+
+def stringify(states: Iterable[State]) -> str:
+    if not isinstance(states, Sequence):
+        states = list(states)
+        states.sort()
+    return "".join(states)
