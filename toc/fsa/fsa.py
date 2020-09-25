@@ -413,21 +413,21 @@ class NFA(_FSA):
         Takes a regular expression and an alphabet (i.e., a set of
         one-character strings) as input; returns an NFA that recognises the
         language defined by that regular expression and that alphabet.
-        
+
         The alphabet parameter is optional; it's default value is
         string.printable -- i.e., the set of "printable" characters, which
         includes the standard ASCII letters and digits, and most common
         punctuation and white space.
 
         Actually, that's not quite right -- the default value is
-        string.printable *minus* parentheses, the vertical bar, the star
+        string.printable *minus* PARENTHE, the vertical bar, the star
         symbol, and the tilde, for reasons that I will explain presently.
 
         As of now, the syntax of the regular expressions that this method takes
         as input is very simple -- much simpler than the standard python
         regular expresssions. All characters are intepreted as literals for
         symbols in the alphabet except for '(', '')', '|', '*', '•', '€' and
-        'Ø'. The parentheses, vertical bar and star mean what you'd expect
+        'Ø'. The PARENTHE, vertical bar and star mean what you'd expect
         them to mean if you are familiar with regular expressions as written in
         programming languages. '•' (option-8 on a mac keyboard) means
         concatenation. You can leave concatentation implicit, as is usual; no
@@ -447,7 +447,7 @@ class NFA(_FSA):
         the empty-set symbol. If, by some miracle, there is someone who cares
         about this, I will change the symbol for empty-set.)
 
-        In the absence of parentheses, the order of operations is: `*`, then
+        In the absence of PARENTHE, the order of operations is: `*`, then
         `•`, then `|`.
 
         I realise the simplicity of the allowed syntax is lame; some day it
@@ -464,20 +464,15 @@ class NFA(_FSA):
             and not one of the above veboten characters,
             3. the input regex contain a binary operator followed by an
             operator, or
-            4. the input regex does not have properly matching parentheses.
+            4. the input regex does not have properly matching PARENTHE.
         """
-        operators = ['sentinel', '|', '•', '*']
-        parentheses = ['(', ')']
-        empties = ['€', 'Ø']
-        not_symbols = operators + parentheses + empties
-
         operator_to_operation = {
             '|': NFA.__or__,
             '•': NFA.__add__
         }
 
         _error_message(
-            bad_set=set(not_symbols) & set(alphabet),
+            bad_set=set(NOT_SYMBOLS) & alphabet,
             message_singular="Alphabet cannot contain character {}.",
             message_plural="Alphabet cannot contain characters {}."
         )
@@ -496,46 +491,6 @@ class NFA(_FSA):
             tf[('q1', symbol)] = {'q2'}
             return NFA(tf, 'q1', {'q2'})
 
-        def pre_process(regex: Regex) -> Regex:
-            first_char = regex[0]
-            if first_char in operators:
-                raise ValueError(f"Regex cannot start with '{first_char}'.")
-            processed = ''
-            paren_count = 0
-            for char in regex:
-                if char in alphabet or char == '(':
-                    if len(processed) > 0:
-                        processed += (
-                            '•' if processed[-1] not in {'(', '|'}
-                            else ''
-                        )
-                if char not in alphabet and char not in not_symbols:
-                    raise ValueError(
-                        f"Regex contains character '{char}' that is not in "
-                        "alphabet and not an accepted regex character."
-                    )
-                if char in operators and processed[-1] in {'|', '•'}:
-                    raise ValueError(
-                        "Regex contains binary operator followed by an "
-                        "operator; not cool."
-                    )
-                if char == '(':
-                    paren_count += 1
-                if char == ')':
-                    paren_count -= 1
-                if paren_count < 0:
-                    raise ValueError(
-                        "Right parenthesis occurs in regex withour matching "
-                        "left parenthesis."
-                    )
-                processed += char
-            if paren_count > 0:
-                raise ValueError(
-                    "Left parenthesis occurs in regex without matching right "
-                    "parenthesis."
-                )
-            return processed
-
         machine_stack: List[NFA] = []
         operator_stack = ['sentinel']
 
@@ -547,25 +502,26 @@ class NFA(_FSA):
             )
             machine_stack.append(machine)
 
-        regex = pre_process(regex)
+        def compare(operator: Regex) -> int:
+            return (
+                OPERATORS.index(operator)
+                - OPERATORS.index(operator_stack[-1])
+            )
+
+        regex = _pre_process(regex, alphabet)
         for char in regex:
-            if char in empties:
+            if char in EMPTIES:
                 machine_stack.append(fit_empty(char))
             elif char in alphabet:
                 machine_stack.append(fit_symbol(char))
             elif char == '*':
                 machine_stack[-1] = machine_stack[-1].star()
-            elif char in operators:
-                def compare(operator):
-                    return (
-                        operators.index(operator)
-                        - operators.index(operator_stack[-1])
-                    )
-                if operator_stack[-1] in parentheses or compare(char) > 0:
+            elif char in OPERATORS:
+                if operator_stack[-1] in PARENTHE or compare(char) > 0:
                     operator_stack.append(char)
                 else:
                     while (
-                            operator_stack[-1] not in parentheses
+                            operator_stack[-1] not in PARENTHE
                             and compare(char) <= 0
                     ):
                         binary_operate()
@@ -578,8 +534,54 @@ class NFA(_FSA):
                 operator_stack.pop()
         while len(operator_stack) > 1:
             binary_operate()
-        machine = machine_stack.pop()
-        return machine
+        return machine_stack.pop()
+
+
+OPERATORS = ['sentinel', '|', '•', '*']
+PARENTHE = ['(', ')']
+EMPTIES = ['€', 'Ø']
+NOT_SYMBOLS = OPERATORS + PARENTHE + EMPTIES
+
+
+def _pre_process(regex: Regex, alphabet: AbstractSet[Symbol]) -> Regex:
+    first_char = regex[0]
+    if first_char in OPERATORS:
+        raise ValueError(f"Regex cannot start with '{first_char}'.")
+    processed = ''
+    paren_count = 0
+    for char in regex:
+        if char in alphabet or char == '(':
+            if len(processed) > 0:
+                processed += (
+                    '•' if processed[-1] not in {'(', '|'}
+                    else ''
+                )
+        if char not in alphabet | set(NOT_SYMBOLS):
+            raise ValueError(
+                f"Regex contains character '{char}' that is not in "
+                "alphabet and not an accepted regex character."
+            )
+        if char in OPERATORS and processed[-1] in {'|', '•'}:
+            raise ValueError(
+                "Regex contains binary operator followed by an "
+                "operator; not cool."
+            )
+        if char == '(':
+            paren_count += 1
+        if char == ')':
+            paren_count -= 1
+        if paren_count < 0:
+            raise ValueError(
+                "Right parenthesis occurs in regex withour matching "
+                "left parenthesis."
+            )
+        processed += char
+    if paren_count > 0:
+        raise ValueError(
+            "Left parenthesis occurs in regex without matching right "
+            "parenthesis."
+        )
+    return processed
 
 
 DfaTransitionFunction = Mapping[Tuple[State, Symbol], State]
@@ -635,7 +637,7 @@ class DFA(_FSA):
             new_tf = dfa1.transition_function.copy()
             new_states = dfa1.states.copy()
             extra_symbols = dfa2.alphabet - dfa1.alphabet
-            if extra_symbols != set():
+            if extra_symbols:
                 error_state = _get_new_state(dfa1.states)
                 new_states = dfa1.states | {error_state}
                 for symbol in union_alphabet:
