@@ -56,10 +56,16 @@ class _FSA(_Base):
 
     @property
     def alphabet(self) -> FrozenSet[Symbol]:
+        """
+        Getter for finite state automaton's `alphabet` property.
+        """
         return self._alphabet
 
     @property
     def accept_states(self) -> AbstractSet[State]:
+        """
+        Getter for finite state automaton's `accept_states` property.
+        """
         return self._accept_states
 
     def _well_defined(self) -> None:
@@ -78,13 +84,8 @@ class _FSA(_Base):
                             "state set.")
         )
 
-    def _get_new_state(self, state_set: Container) -> State:
-        counter = 1
-        new_state = 'new_state1'
-        while new_state in state_set:
-            counter += 1
-            new_state = new_state + str(counter)
-        return new_state
+    def _good_range(self):
+        raise NotImplementedError
 
 
 GnfaTransitionFunction = Mapping[Tuple[State, State], Regex]
@@ -204,7 +205,7 @@ class NFA(_FSA):
 
         There is no problem with the input NFAs having different alphabets."""
         new_self, new_other, union_tf = self._combine(other)
-        union_start_state = self._get_new_state(new_self.states | new_other.states)
+        union_start_state = _get_new_state(new_self.states | new_other.states)
         union_tf[(union_start_state, '')] = { new_self.start_state, new_other.start_state }
         for symbol in new_self.alphabet | new_other.alphabet:
             union_tf[(union_start_state, symbol)] = set()
@@ -313,18 +314,18 @@ class NFA(_FSA):
         determinized_tf = {}
         determinized_accept = set()
         for (state_set, symbol) in product(state_sets, self._alphabet):
-            determinzed_state = stringify(state_set)
-            determinized_tf[(determinzed_state, symbol)] = stringify(self._transition(state_set, symbol))
+            determinzed_state = _stringify(state_set)
+            determinized_tf[(determinzed_state, symbol)] = _stringify(self._transition(state_set, symbol))
             if set(state_set) & self.accept_states:
                 determinized_accept.add(determinzed_state)
-        determinized_start = stringify(self._add_epsilons({self._start_state}))
+        determinized_start = _stringify(self._add_epsilons({self._start_state}))
         return DFA(determinized_tf, determinized_start, determinized_accept)
 
 
     def star(self) -> "NFA":
         """Let A be the language recognised by nfa. `nfa.self()` returns an nfa that recognizes A* --
         i.e., the set of all strings formed by concatenating any number of members of A."""
-        star_start = self._get_new_state(self.states)
+        star_start = _get_new_state(self.states)
         star_tf = self.transition_function.copy()
         star_tf[(star_start, '')] = { self.start_state }
         for symbol in self.alphabet:
@@ -486,7 +487,7 @@ class DFA(_FSA):
             new_states = dfa1.states.copy()
             extra_symbols = dfa2.alphabet - dfa1.alphabet
             if extra_symbols != set():
-                error_state = self._get_new_state(dfa1.states)
+                error_state = _get_new_state(dfa1.states)
                 new_states = dfa1.states | { error_state }
                 for symbol in union_alphabet:
                     new_tf[(error_state, symbol)] = error_state
@@ -501,7 +502,7 @@ class DFA(_FSA):
         for (state1, state2), symbol in product(state_pairs, union_alphabet):
             union_transition_function[(state1 + state2, symbol)] = self_tf[(state1, symbol)] + other_tf[(state2, symbol)]
         union_start_state = self.start_state + other.start_state
-        union_accept_states = {stringify(item) for item in set(product(self.accept_states, other_states)) | set(product(self_states, other.accept_states))}
+        union_accept_states = {_stringify(item) for item in set(product(self.accept_states, other_states)) | set(product(self_states, other.accept_states))}
         return DFA(union_transition_function, union_start_state, union_accept_states)
 
     def __add__(self, other: "DFA") -> "DFA":
@@ -516,8 +517,8 @@ class DFA(_FSA):
                 gnfa_tf[(state1, state2)] += '|' + symbol
             else:
                 gnfa_tf[(state1, state2)] = symbol
-        gnfa_start = self._get_new_state(self.states)
-        gnfa_accept = self._get_new_state(self.states | {gnfa_start})
+        gnfa_start = _get_new_state(self.states)
+        gnfa_accept = _get_new_state(self.states | {gnfa_start})
         gnfa_tf[(gnfa_start, self.start_state)] = '€'
         for state in self.accept_states:
             gnfa_tf[(state, gnfa_accept)] = '€'
@@ -558,8 +559,17 @@ class DFA(_FSA):
         return NFA(nd_transition_function, self.start_state, self.accept_states)
 
 
-def stringify(states: Iterable[State]) -> str:
+def _stringify(states: Iterable[State]) -> str:
     if not isinstance(states, Sequence):
         states = list(states)
         states.sort()
     return "".join(states)
+
+
+def _get_new_state(state_set: Container) -> State:
+    counter = 1
+    new_state = 'new_state1'
+    while new_state in state_set:
+        counter += 1
+        new_state = "new_state" + str(counter)
+    return new_state
