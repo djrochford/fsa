@@ -49,11 +49,25 @@ class TestDFA(unittest.TestCase):
             ('q2', '2'): 'q1'
         }
 
-        self.m1 = DFA(self.tf1, 'q1', {'q2'})
-        self.m2 = DFA(tf2, 'q1', {'q2'})
-        self.m3 = DFA(tf2, 'q1', {'q1'})
-        self.m4 = DFA(tf4, 's', {'q1', 'r1'})
-        self.m5 = DFA(tf5, 'q0', {'q0'})
+        self.m1 = DFA(
+            transition_function=self.tf1,
+            start_state='q1',
+            accept_states={'q2'}
+        )
+        self.m2 = DFA(
+            transition_function=tf2, start_state='q1', accept_states={'q2'}
+        )
+        self.m3 = DFA(
+            transition_function=tf2, start_state='q1', accept_states={'q1'}
+        )
+        self.m4 = DFA(
+            transition_function=tf4,
+            start_state='s',
+            accept_states={'q1', 'r1'}
+        )
+        self.m5 = DFA(
+            transition_function=tf5, start_state='q0', accept_states={'q0'}
+        )
 
     def test_instantiation(self):
         bad_start_msg = "Start state '0' is not a member of the fsm's state set."
@@ -73,15 +87,35 @@ class TestDFA(unittest.TestCase):
         del tf4[('q3', '1')]
 
         with self.assertRaisesRegex(ValueError, bad_start_msg):
-            DFA(self.tf1, 0, {'q2'})
+            DFA(
+                transition_function=self.tf1,
+                start_state=0,
+                accept_states={'q2'}
+            )
         with self.assertRaisesRegex(ValueError, bad_accept_msg):
-            DFA(self.tf1, 'q1', {'bad1', 'bad2', 'q3', 'q2'})
+            DFA(
+                transition_function=self.tf1,
+                start_state='q1',
+                accept_states={'bad1', 'bad2', 'q3', 'q2'}
+            )
         with self.assertRaisesRegex(ValueError, bad_alphabet_msg):
-            DFA(tf2, 'q1', {'q2'})
+            DFA(
+                transition_function=tf2,
+                start_state='q1',
+                accept_states={'q2'}
+            )
         with self.assertRaisesRegex(ValueError, bad_range_msg):
-            DFA(tf3, 'q1', {'q2'})
+            DFA(
+                transition_function=tf3,
+                start_state='q1',
+                accept_states={'q2'}
+            )
         with self.assertRaisesRegex(ValueError, bad_domain_msg):
-            DFA(tf4, 'q1', {'q2'})
+            DFA(
+                transition_function=tf4,
+                start_state='q1',
+                accept_states={'q2'}
+            )
 
     def test_accepts(self):
         bad_string_msg = "Symbol '#' not in fsa's alphabet"
@@ -139,7 +173,7 @@ class TestDFA(unittest.TestCase):
             (3, 'a'): 2,
             (3, 'b'): 1
         }
-        m = DFA(tf, 1, {2, 3})
+        m = DFA(transition_function=tf, start_state=1, accept_states={2, 3})
         self.assertEqual(m.encode(),
             '(a(aa|b)*ab|b)((ba|a)(aa|b)*ab|bb)*((ba|a)(aa|b)*|€)|a(aa|b)*'
         )
@@ -192,10 +226,22 @@ class TestNFA(unittest.TestCase):
             ('q3', 'b'): set()
         }
 
-        self.n1 = NFA(self.tf1, 'q1', {'q4'})
-        self.n2 = NFA(tf2, 'q1', {'q4'})
-        self.n3 = NFA(tf3, 's', {'q1', 'r1'})
-        self.n4 = NFA(tf4, 'q1', {'q1'})        
+        self.n1 = NFA(
+            transition_function=self.tf1,
+            start_state='q1',
+            accept_states={'q4'}
+        )
+        self.n2 = NFA(
+            transition_function=tf2, start_state='q1', accept_states={'q4'}
+        )
+        self.n3 = NFA(
+            transition_function=tf3,
+            start_state='s',
+            accept_states={'q1', 'r1'}
+        )
+        self.n4 = NFA(
+            transition_function=tf4, start_state='q1', accept_states={'q1'}
+        )
 
     def test_instantiation(self):
         bad_start_msg = "Start state 'bad' is not a member of the fsm's state set."
@@ -219,17 +265,41 @@ class TestNFA(unittest.TestCase):
         del tf5[('q3', '1')]
 
         with self.assertRaisesRegex(ValueError, bad_start_msg):
-            NFA(self.tf1, 'bad', {'q4'})
+            NFA(
+                transition_function=self.tf1,
+                start_state='bad',
+                accept_states={'q4'}
+            )
         with self.assertRaisesRegex(ValueError, bad_accept_msg):
-            NFA(self.tf1, 'q1', {'bad1', 'bad2', 'q4'})
+            NFA(
+                transition_function=self.tf1,
+                start_state='q1',
+                accept_states={'bad1', 'bad2', 'q4'}
+            )
         with self.assertRaisesRegex(ValueError, bad_alphabet_msg):
-            NFA(tf2, 'q1', {'q4'})
+            NFA(
+                transition_function=tf2,
+                start_state='q1',
+                accept_states={'q4'}
+            )
         with self.assertRaisesRegex(ValueError, bad_range_msg1):
-            NFA(tf3, 'q1', {'q4'})
+            NFA(
+                transition_function=tf3,
+                start_state='q1',
+                accept_states={'q4'}
+            )
         with self.assertRaisesRegex(ValueError, bad_range_msg2):
-            NFA(tf4, 'q1', {'q4'})
+            NFA(
+                transition_function=tf4,
+                start_state='q1',
+                accept_states={'q4'}
+            )
         with self.assertRaisesRegex(ValueError, bad_domain_msg):
-            NFA(tf5, 'q1', {'q4'})
+            NFA(
+                transition_function=tf5,
+                start_state='q1',
+                accept_states={'q4'}
+            )
 
     def test_accepts(self):
         self.assertTrue(self.n1.accepts('10100100'))
@@ -317,7 +387,9 @@ class TestNFA(unittest.TestCase):
             ('q3', '1'): {'q3'}
         }
 
-        n5 = NFA(tf_5, 'q1', {'q2'})
+        n5 = NFA(
+            transition_function=tf_5, start_state='q1', accept_states={'q2'}
+        )
         n5_star = n5.star()
         self.assertTrue(n5.accepts('1000'))
         self.assertFalse(n5.accepts('10001000'))

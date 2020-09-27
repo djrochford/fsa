@@ -42,6 +42,7 @@ FsaTransitionFunction = Mapping[
 class _FSA(_Base):
     def __init__(
             self,
+            *,
             transition_function: FsaTransitionFunction,
             start_state: State,
             accept_states: AbstractSet[State]
@@ -240,7 +241,11 @@ class NFA(_FSA):
         for symbol in new_self.alphabet | new_other.alphabet:
             union_tf[(union_start_state, symbol)] = set()
         union_accept_states = new_self.accept_states | new_other.accept_states
-        return NFA(union_tf, union_start_state, union_accept_states)
+        return NFA(
+            transition_function=union_tf,
+            start_state=union_start_state,
+            accept_states=union_accept_states
+        )
 
     def __add__(self, other: "NFA") -> "NFA":
         """
@@ -256,7 +261,11 @@ class NFA(_FSA):
                 concat_tf[(state, '')].add(new_other.start_state)
             else:
                 concat_tf[(state, '')] = {new_other.start_state}
-        return NFA(concat_tf, new_self.start_state, new_other.accept_states)
+        return NFA(
+            transition_function=concat_tf,
+            start_state=new_self.start_state,
+            accept_states=new_other.accept_states
+        )
 
     def _combine(self, other: "NFA") -> Tuple["NFA", "NFA", MutableNfaTF]:
         def prime(state: State):
@@ -270,7 +279,11 @@ class NFA(_FSA):
                 }
             copy_start = prime(nfa.start_state)
             copy_accept = {prime(x) for x in nfa.accept_states}
-            return NFA(copy_tf, copy_start, copy_accept)
+            return NFA(
+                transition_function=copy_tf,
+                start_state=copy_start,
+                accept_states=copy_accept
+            )
         overlap = self.states & other.states
         while overlap:
             other = copy(other)
@@ -289,8 +302,16 @@ class NFA(_FSA):
             return add_one_way(nfa1, nfa2), add_one_way(nfa2, nfa1)
 
         self_tf, other_tf = add_empty_transitions(self, other)
-        new_self = NFA(self_tf, self.start_state, self.accept_states)
-        new_other = NFA(other_tf, other.start_state, other.accept_states)
+        new_self = NFA(
+            transition_function=self_tf,
+            start_state=self.start_state,
+            accept_states=self.accept_states
+        )
+        new_other = NFA(
+            transition_function=other_tf,
+            start_state=other.start_state,
+            accept_states=other.accept_states
+        )
         combination_tf = {}
         combination_tf.update(new_self.transition_function)
         combination_tf.update(new_other.transition_function)
@@ -385,7 +406,11 @@ class NFA(_FSA):
         determinized_start = _stringify(
             self._add_epsilons({self._start_state})
         )
-        return DFA(determinized_tf, determinized_start, determinized_accept)
+        return DFA(
+            transition_function=determinized_tf,
+            start_state=determinized_start,
+            accept_states=determinized_accept
+        )
 
     def star(self) -> "NFA":
         """
@@ -401,7 +426,11 @@ class NFA(_FSA):
         for state in self.accept_states:
             star_tf[(state, '')] = {self.start_state}
         star_accepts = self.accept_states | {star_start}
-        return NFA(star_tf, star_start, star_accepts)
+        return NFA(
+            transition_function=star_tf,
+            start_state=star_start,
+            accept_states=star_accepts
+        )
 
     @staticmethod
     def fit(
@@ -483,14 +512,20 @@ class NFA(_FSA):
                 pair: set() for pair in product({'q1'}, alphabet)
             }
             accept_states = set() if empty == 'Ø' else {'q1'}
-            return NFA(tf, 'q1', accept_states)
+            return NFA(
+                transition_function=tf,
+                start_state='q1',
+                accept_states=accept_states
+            )
 
         def fit_symbol(symbol: Symbol) -> NFA:
             tf: MutableNfaTF = {
                 pair: set() for pair in product({'q1', 'q2'}, alphabet)
             }
             tf[('q1', symbol)] = {'q2'}
-            return NFA(tf, 'q1', {'q2'})
+            return NFA(
+                transition_function=tf, start_state='q1', accept_states={'q2'}
+            )
 
         machine_stack: List[NFA] = []
         operator_stack = ['sentinel']
@@ -663,7 +698,9 @@ class DFA(_FSA):
             )
         }
         return DFA(
-            union_transition_function, union_start_state, union_accept_states
+            transition_function=union_transition_function,
+            start_state=union_start_state,
+            accept_states=union_accept_states
         )
 
     def __add__(self, other: "DFA") -> "DFA":
@@ -744,7 +781,9 @@ class DFA(_FSA):
             key: {value} for key, value in self.transition_function.items()
         }
         return NFA(
-            nd_transition_function, self.start_state, self.accept_states
+            transition_function=nd_transition_function,
+            start_state=self.start_state,
+            accept_states=self.accept_states
         )
 
 
