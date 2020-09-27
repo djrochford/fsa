@@ -341,7 +341,7 @@ class NFA(_FSA):
         )
 
     def _get_successors(
-            self, state_set: AbstractSet[State], symbol: Symbol
+            self, *, state_set: AbstractSet[State], symbol: Symbol
     ) -> FrozenSet[State]:
         def get_successor(state: State, sym: Symbol) -> AbstractSet[State]:
             self._transition_function = cast(
@@ -354,14 +354,18 @@ class NFA(_FSA):
         )
 
     def _add_epsilons(self, state_set: AbstractSet[State]) -> FrozenSet[State]:
-        epsilon_neighbours = self._get_successors(state_set, '')
+        epsilon_neighbours = self._get_successors(
+            state_set=state_set, symbol=''
+        )
         while epsilon_neighbours - state_set:
             state_set = state_set | epsilon_neighbours
-            epsilon_neighbours = self._get_successors(epsilon_neighbours, '')
+            epsilon_neighbours = self._get_successors(
+                state_set=epsilon_neighbours, symbol=''
+            )
         return frozenset(state_set)
 
     def _transition(self, state_set: AbstractSet[State], symbol: Symbol):
-        return self._add_epsilons(self._get_successors(state_set, symbol))
+        return self._add_epsilons(self._get_successors(state_set=state_set, symbol=symbol))
 
     def accepts(self, string: str) -> bool:
         """
