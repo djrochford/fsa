@@ -1,4 +1,5 @@
 from itertools import chain, combinations
+from typing import AbstractSet, Dict, Mapping, Sequence, Set, Tuple, Union
 
 class CFG:
     """A context-free grammar class. Takes two parameters: the grammar's rules, and the start variable, in that order.
@@ -21,7 +22,11 @@ class CFG:
     The exception message will specify which of the above conditions triggered the exception, and which variables/terminals
     were the source of the problem.
     """
-    def __init__(self, rules, start_variable):
+    def __init__(
+            self,
+            rules: Mapping[str, AbstractSet[Union[Tuple[str, ...], str]]],
+            start_variable: str
+    ):
         self.rules = rules
         self._check_rules()
         self.variables = set(self.rules.keys())
@@ -30,7 +35,7 @@ class CFG:
         self.start_variable = start_variable
         self._check_start()
 
-    def _check_rules(self):
+    def _check_rules(self) -> None:
         if type(self.rules) != dict:
             raise ValueError("Rules parameter should be a dictionary.")
         bad_variables = {x for x in self.rules if type(x) != str}
@@ -45,7 +50,8 @@ class CFG:
             "Value {} of rules dictionary is not either a set or frozenset.",
             "Values {} of rules dictionary are not either sets or frozensets."
         )
-        members = set.union(*list(self.rules.values()))
+        empty: Set[Union[Tuple[str, ...], str]] = set()  # To avoid a mypy bug.
+        members = empty.union(*self.rules.values())
         bad_members = {x for x in members if not (type(x) == str or type(x) == tuple)}
         self._error_message(
             bad_members,
@@ -53,11 +59,12 @@ class CFG:
             "Value members {} are not strings."
         )
 
-    def _find_terminals(self):
-        substitutions = set.union(*self.rules.values())
+    def _find_terminals(self) -> Set[str]:
+        empty: Set[Union[Tuple[str, ...], str]] = set()
+        substitutions = empty.union(*self.rules.values())
         substitution_values = set()
         for substitution in substitutions:
-            if type(substitution) == tuple:
+            if isinstance(substitution, tuple):
                 for value in substitution:
                     substitution_values.add(value)
             else:
@@ -66,15 +73,15 @@ class CFG:
         return terminals
 
 
-    def _check_terminals(self):
+    def _check_terminals(self) -> None:
         if self.terminals == set():
             raise ValueError("There are no terminals in the rule dictionary values.")
 
-    def _check_start(self):
+    def _check_start(self) -> None:
         if self.start_variable not in self.variables:
             raise ValueError("Start variable not in the CFG's variable set.")
 
-    def _error_message(self, bad_set, message_singular, message_plural):
+    def _error_message(self, bad_set: AbstractSet, message_singular: str, message_plural: str):
         if bad_set != set():
             quoted_members = {"'{}'".format(x) for x in bad_set}
             if len(quoted_members) == 1:
@@ -94,7 +101,7 @@ class CFG:
     def get_terminals(self):
         return self.terminals.copy()
 
-    def is_valid_derivation(self, derivation):
+    def is_valid_derivation(self, derivation: Sequence[Sequence[str]]) -> bool:
         """Your derivation should be in the form of a list of lists, the members of each list being
         variables or terminals of the cfg instance. is_valid_derivation returns True iff each list can be derived
         from the previous list via a rule in the CFG's rule dictionary -- i.e., it returns True iff the
@@ -130,7 +137,7 @@ class CFG:
 
 
 
-    def chomsky_normalize(self):
+    def chomsky_normalize(self) -> "CFG":
         """Let cfg be a context-free grammar that generates language L.
         `cfg.chomky_normalize()` returns a new CFG instance that also generates L, but is in Chomsky Normal Form --
         i.e., all possible substitutions of variables are either single terminals or a pair of variables (no empty substitutions).
@@ -156,7 +163,7 @@ class CFG:
         rule_set = {(v, s) for v in self.rules for s in self.rules[v]}
         rule_list = list(rule_set)
         for i, rule in enumerate(rule_list):
-            if type(rule[1]) == str:
+            if isinstance(rule[1], str):
                 rule_list[i] = (rule[0], (rule[1]))
         rule_set = set(rule_list)
 
@@ -251,7 +258,7 @@ class CFG:
         deal_with_bad_terminals()
  
         #convert rule_set to standard rule dictionary
-        normalized_rules = {}
+        normalized_rules: Dict[str, Set[Union[Tuple[str, ...], str]]] = {}
         for rule in rule_set:
             variable, substitution = rule
             if variable in normalized_rules:
