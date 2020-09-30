@@ -59,12 +59,6 @@ class TestCFG(unittest.TestCase):
         rules5 = self.rules1.copy()
         rules5['C'] = {2}
 
-        with self.assertRaisesRegex(ValueError, not_dict_msg):
-            CFG(rules1, 'dog')
-        with self.assertRaisesRegex(ValueError, bad_variables_msg):
-            CFG(rules2, 'A')
-        with self.assertRaisesRegex(ValueError, bad_values_msg):
-            CFG(rules3, 'A')
         with self.assertRaisesRegex(ValueError, bad_terminals_msg):
             CFG(rules4, 'A')
         with self.assertRaisesRegex(ValueError, bad_start_msg):

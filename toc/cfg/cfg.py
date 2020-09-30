@@ -1,26 +1,43 @@
+"""
+Context-Free Grammar Class
+"""
 from itertools import chain, combinations
 from typing import AbstractSet, Dict, Mapping, Sequence, Set, Tuple, Union
 
+
 class CFG:
-    """A context-free grammar class. Takes two parameters: the grammar's rules, and the start variable, in that order.
+    """
+    A context-free grammar class. Takes two parameters: the grammar's rules,
+    and the start variable, in that order.
 
-    The rules should be specified as a dictionary with string keys and set (or frozenset) values. Each member of the set is a possible substitution
-    for that variable; a substitution should be a tuple of strings, or, if you wish, in the case of single-variable substitutions, a string.
+    The rules should be specified as a dictionary with string keys and set (or
+    frozenset) values. Each member of the set is a possible substitution for
+    that variable; a substitution should be a tuple of strings, or, if you
+    wish, in the case of single-variable substitutions, a string.
 
-    The variables and terminals of the grammar are inferred from the rule dictionary. All keys are assumed to be variables of the grammar;
-    everything that appears in a substitution that isn't a variable is assumed to be a terminal.
+    The variables and terminals of the grammar are inferred from the rule
+    dictionary. All keys are assumed to be variables of the grammar; everything
+    that appears in a substitution that isn't a variable is assumed to be a
+    terminal.
 
-    You can specify empty substitutions using '€' (opt-shift-2, on a mac). That symbol the closest thing to an epsilon you can access easily from the keyboard.
+    You can specify empty substitutions using '€' (opt-shift-2, on a mac). That
+    symbol the closest thing to an epsilon you can access easily from the
+    keyboard.
 
-    The class will raise a ValueError exception on instantiation if any of the following are true:
+    The class will raise a ValueError exception on instantiation if any of the
+    following are true:
         1. the first (rule) parameter is not a dictionary;
         2. the rule dictionary contains a non-string key;
-        3. the rule dictionary contains a value that is neither a set nor a frozenset;
-        4. one of the set-values of the rule dictionary has a non-string member;
+        3. the rule dictionary contains a value that is neither a set nor a
+        frozenset;
+        4. one of the set-values of the rule dictionary has a non-string
+        member;
         5. there are no terminals among the possible substitutions;
-        6. the start-variable parameter is not one of the variables inferred from the rule dictionary.
-    The exception message will specify which of the above conditions triggered the exception, and which variables/terminals
-    were the source of the problem.
+        6. the start-variable parameter is not one of the variables inferred
+        from the rule dictionary.
+    The exception message will specify which of the above conditions triggered
+    the exception, and which variables/terminals were the source of the
+    problem.
     """
     def __init__(
             self,
@@ -28,36 +45,11 @@ class CFG:
             start_variable: str
     ):
         self.rules = rules
-        self._check_rules()
         self.variables = set(self.rules.keys())
         self.terminals = self._find_terminals()
         self._check_terminals()
         self.start_variable = start_variable
         self._check_start()
-
-    def _check_rules(self) -> None:
-        if type(self.rules) != dict:
-            raise ValueError("Rules parameter should be a dictionary.")
-        bad_variables = {x for x in self.rules if type(x) != str}
-        self._error_message(
-            bad_variables,
-            "Variable {} is not a string.",
-            "Variables {} are not strings."
-        )
-        bad_values = {x for x in self.rules.values() if type(x) != set and type(x) != frozenset}
-        self._error_message(
-            bad_values,
-            "Value {} of rules dictionary is not either a set or frozenset.",
-            "Values {} of rules dictionary are not either sets or frozensets."
-        )
-        empty: Set[Union[Tuple[str, ...], str]] = set()  # To avoid a mypy bug.
-        members = empty.union(*self.rules.values())
-        bad_members = {x for x in members if not (type(x) == str or type(x) == tuple)}
-        self._error_message(
-            bad_members,
-            "Value member {} is not a string.",
-            "Value members {} are not strings."
-        )
 
     def _find_terminals(self) -> Set[str]:
         empty: Set[Union[Tuple[str, ...], str]] = set()
