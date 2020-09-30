@@ -64,22 +64,15 @@ class CFG:
         terminals = substitution_values - self.variables
         return terminals
 
-
     def _check_terminals(self) -> None:
         if self.terminals == set():
-            raise ValueError("There are no terminals in the rule dictionary values.")
+            raise ValueError(
+                "There are no terminals in the rule dictionary values."
+            )
 
     def _check_start(self) -> None:
         if self.start_variable not in self.variables:
             raise ValueError("Start variable not in the CFG's variable set.")
-
-    def _error_message(self, bad_set: AbstractSet, message_singular: str, message_plural: str):
-        if bad_set != set():
-            quoted_members = {"'{}'".format(x) for x in bad_set}
-            if len(quoted_members) == 1:
-                raise ValueError(message_singular.format(*quoted_members));
-            else:
-                raise ValueError(message_plural.format((", ").join(quoted_members)))
 
     def get_rules(self):
         return self.rules.copy()
@@ -259,3 +252,12 @@ class CFG:
                 normalized_rules[variable] = {substitution}
 
         return CFG(normalized_rules, normalized_start)
+
+
+def _error_message(bad_set: AbstractSet, message_singular: str, message_plural: str):
+    if bad_set != set():
+        quoted_members = {"'{}'".format(x) for x in bad_set}
+        if len(quoted_members) == 1:
+            raise ValueError(message_singular.format(*quoted_members));
+        else:
+            raise ValueError(message_plural.format((", ").join(quoted_members)))
