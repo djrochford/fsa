@@ -115,6 +115,9 @@ class FST(_Base):
         _check_input(string=string, alphabet=self._input_alphabet)
         current_state = self._start_state
         output = ""
+        self._transition_function = cast(
+            TransitionFunction, self._transition_function
+        )
         for input_symbol in string:
             (next_state, output_symbol) = self._transition_function[
                 (current_state, input_symbol)

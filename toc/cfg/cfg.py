@@ -2,7 +2,9 @@
 Context-Free Grammar Class
 """
 from itertools import chain, combinations
-from typing import AbstractSet, Dict, Mapping, Sequence, Set, Tuple, Union
+from typing import (
+    AbstractSet, Dict, FrozenSet, Mapping, Sequence, Set, Tuple, Union
+)
 
 
 class CFG:
@@ -44,14 +46,14 @@ class CFG:
             rules: Mapping[str, AbstractSet[Union[Tuple[str, ...], str]]],
             start_variable: str
     ):
-        self.rules = rules
-        self.variables = set(self.rules.keys())
-        self.terminals = self._find_terminals()
+        self._rules = rules
+        self._variables = frozenset(self.rules.keys())
+        self._terminals = self._find_terminals()
         self._check_terminals()
-        self.start_variable = start_variable
+        self._start_variable = start_variable
         self._check_start()
 
-    def _find_terminals(self) -> Set[str]:
+    def _find_terminals(self) -> FrozenSet[str]:
         empty: Set[Union[Tuple[str, ...], str]] = set()
         substitutions = empty.union(*self.rules.values())
         substitution_values = set()
@@ -61,30 +63,34 @@ class CFG:
                     substitution_values.add(value)
             else:
                 substitution_values.add(substitution)
-        terminals = substitution_values - self.variables
-        return terminals
+        terminals = substitution_values - self._variables
+        return frozenset(terminals)
 
     def _check_terminals(self) -> None:
-        if self.terminals == set():
+        if self._terminals == set():
             raise ValueError(
                 "There are no terminals in the rule dictionary values."
             )
 
     def _check_start(self) -> None:
-        if self.start_variable not in self.variables:
+        if self._start_variable not in self._variables:
             raise ValueError("Start variable not in the CFG's variable set.")
 
-    def get_rules(self):
-        return self.rules.copy()
+    @property
+    def rules(self) -> Dict[str, AbstractSet[Union[Tuple[str, ...], str]]]:
+        return dict(self._rules)
 
-    def get_start_variable(self):
-        return self.start_variable
+    @property
+    def start_variable(self) -> str:
+        return self._start_variable
 
-    def get_variables(self):
-        return self.variables.copy()
+    @property
+    def variables(self) -> FrozenSet[str]:
+        return self._variables
 
-    def get_terminals(self):
-        return self.terminals.copy()
+    @property
+    def terminals(self) -> FrozenSet[str]:
+        return self._terminals
 
     def is_valid_derivation(self, derivation: Sequence[Sequence[str]]) -> bool:
         """Your derivation should be in the form of a list of lists, the members of each list being

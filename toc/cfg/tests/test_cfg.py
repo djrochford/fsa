@@ -108,8 +108,8 @@ class TestCFG(unittest.TestCase):
         protonormal = non_normal.chomsky_normalize()
         #This below is to make sure the normalized grammar is a well-formed grammar, and
         #passes all the checks that occur during instantiation.
-        normal = CFG(protonormal.get_rules(), protonormal.get_start_variable())
-        normal_rules = normal.get_rules()
+        normal = CFG(protonormal.rules, protonormal.start_variable)
+        normal_rules = normal.rules
         for substitution in set.union(*normal_rules.values()):
             if type(substitution) == str:
                 substitution = (substitution)
@@ -118,12 +118,12 @@ class TestCFG(unittest.TestCase):
             self.assertGreater(length, 0)
             if length == 2:
                 for value in substitution:
-                    self.assertIn(value, normal.get_variables() - {normal.get_start_variable()})
+                    self.assertIn(value, normal.variables - {normal.start_variable})
             if length == 1:
                 value = substitution[0]
-                self.assertIn(value, normal.get_terminals())
+                self.assertIn(value, normal.terminals)
         for variable in normal_rules:
-            if variable != normal.get_start_variable():
+            if variable != normal.start_variable:
                 self.assertFalse(normal_rules[variable] == ('€',))
                 self.assertFalse(normal_rules[variable] == '€')
 
