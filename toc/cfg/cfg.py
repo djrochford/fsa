@@ -78,79 +78,82 @@ class CFG:
 
     @property
     def rules(self) -> Dict[str, AbstractSet[Union[Tuple[str, ...], str]]]:
+        """
+        Getter for `_rules` property. Returns a new `dict` version of the
+        rules; mutating the returned value will not mutate the CFG's rules.
+        """
         return dict(self._rules)
 
     @property
     def start_variable(self) -> str:
+        """
+        Getter for the `_start_variable` property
+        """
         return self._start_variable
 
     @property
     def variables(self) -> FrozenSet[str]:
+        """
+        Getter for the `_variables` property.
+        """
         return self._variables
 
     @property
     def terminals(self) -> FrozenSet[str]:
+        """
+        Getter for the `_terminals`property.
+        """
         return self._terminals
 
     def is_valid_derivation(self, derivation: Sequence[Sequence[str]]) -> bool:
-        """Your derivation should be in the form of a list of lists, the members of each list being
-        variables or terminals of the cfg instance. is_valid_derivation returns True iff each list can be derived
-        from the previous list via a rule in the CFG's rule dictionary -- i.e., it returns True iff the
-        derivation encoded in your list of lists is a valid derivation for the relevant CFG. It returns False
-        otherwise.
+        """
+        Your derivation should be in the form of a list of lists, the
+        members of each list being variables or terminals of the cfg instance.
+        `is_valid_derivation` returns True iff each list can be derived from
+        the previous list via a rule in the CFG's rule dictionary -- i.e., it
+        returns True iff the derivation encoded in your list of lists is a
+        valid derivation for the relevant CFG. It returns False otherwise.
         """
 
-        def yields(line1, line2):
+        def yields(line1: Sequence[str], line2: Sequence[str]) -> bool:
             if line1 == line2:
                 return True
-            else:
-                if len(line1) < 1:
-                    return False
-                first_term = line1[0]
-                possible_substitutes = {first_term}
-                if first_term in self.variables:
-                    possible_substitutes = possible_substitutes | self.rules[first_term]
-                for substitution in possible_substitutes:
-                    if type(substitution) == str:
-                        substitution = [substitution]
-                    is_valid = False
-                    if line2[:len(substitution)] == list(substitution):
-                        is_valid = yields(line1[1:], line2[len(substitution):])
-                    if is_valid:
-                        return True
+            if len(line1) < 1:
                 return False
-
+            first_term = line1[0]
+            possible_substitutes = {first_term}
+            if first_term in self.variables:
+                possible_substitutes = (
+                    possible_substitutes | self.rules[first_term]
+                )
+            for substitution in possible_substitutes:
+                if isinstance(substitution, str):
+                    substitution = [substitution]
+                is_valid = False
+                if line2[:len(substitution)] == list(substitution):
+                    is_valid = yields(line1[1:], line2[len(substitution):])
+                if is_valid:
+                    return True
+            return False
 
         for i in range(len(derivation) - 1):
             if not yields(derivation[i], derivation[i+1]):
                 return False
         return True
 
-
-
     def chomsky_normalize(self) -> "CFG":
-        """Let cfg be a context-free grammar that generates language L.
-        `cfg.chomky_normalize()` returns a new CFG instance that also generates L, but is in Chomsky Normal Form --
-        i.e., all possible substitutions of variables are either single terminals or a pair of variables (no empty substitutions).
-        
-        The resulting grammar is liable to much more complicated than the minimally-complicated, Chomsky-normalized
-        grammar that generates L. Maybe some day I'll add some stuff to simplify the result.
         """
-        # first some utility procedures
-        def get_new_variable(variable_set):
-            new_variable = 'V'
-            counter = 1
-            while new_variable in variable_set:
-                new_variable = new_variable[0] + str(counter)
-                counter += 1
-            return new_variable
-        #powerset code an itertools recipe, from https://docs.python.org/3/library/itertools.html#recipes
-        #(minor adjustment made to make the result a set)
-        def powerset(iterable):
-            s = list(iterable)
-            return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+        Let cfg be a context-free grammar that generates language L.
+        `cfg.chomky_normalize()` returns a new CFG instance that also generates
+        L, but is in Chomsky Normal Form -- i.e., all possible substitutions of
+        variables are either single terminals or a pair of variables (no empty
+        substitutions).
 
-        #some pre-processing of the rules to make life easier
+        The resulting grammar is liable to much more complicated than the
+        minimally-complicated, Chomsky-normalized grammar that generates L.
+        Maybe some day I'll add some stuff to simplify the result.
+        """
+        # some pre-processing of the rules to make life easier
         rule_set = {(v, s) for v in self.rules for s in self.rules[v]}
         rule_list = list(rule_set)
         for i, rule in enumerate(rule_list):
@@ -158,9 +161,8 @@ class CFG:
                 rule_list[i] = (rule[0], (rule[1]))
         rule_set = set(rule_list)
 
-        
         def deal_with_start():
-            normalized_start = get_new_variable(self.variables)
+            normalized_start = _get_new_variable(self.variables)
             rule_set.add((normalized_start, (self.start_variable)))
             return normalized_start
 
@@ -169,7 +171,7 @@ class CFG:
         def deal_with_epilsons():
             removed_epsilons = set()
             epsilon_rules = {rule for rule in rule_set if rule[0] != normalized_start and rule[1] == ('€')}
-            while epsilon_rules != set():
+            while epsilon_rules:
                 for rule in epsilon_rules:
                     variable = rule[0]
                     rule_set.remove(rule)
@@ -182,7 +184,7 @@ class CFG:
                         else:
                             if variable in s:
                                 occurences = [i for i, value in enumerate(s) if value == variable]
-                                power_set_occurences = powerset(occurences)
+                                power_set_occurences = _powerset(occurences)
                                 for occurence_list in power_set_occurences:
                                     new_substitution = list(s)
                                     for index in sorted(occurence_list, reverse=True):
@@ -218,7 +220,7 @@ class CFG:
                 rule_set.remove(rule)
                 left_hand_variable = rule[0]
                 for value in rule[1][:-1]:
-                    new_variable = get_new_variable(variables)
+                    new_variable = _get_new_variable(variables)
                     variables.add(new_variable)
                     new_rule = (left_hand_variable, (value, new_variable))
                     rule_set.add(new_rule)
@@ -237,7 +239,7 @@ class CFG:
                 new_rule = list(rule)
                 new_variables = set()
                 for i in terminal_indices:
-                    new_variable = get_new_variable(variables)
+                    new_variable = _get_new_variable(variables)
                     variables.add(new_variable)
                     new_variables.add(new_variable)
                     new_rule[1] = list(new_rule[1])
@@ -247,7 +249,7 @@ class CFG:
                 rule_set.add((new_rule[0], tuple(new_rule[1])))
 
         deal_with_bad_terminals()
- 
+
         #convert rule_set to standard rule dictionary
         normalized_rules: Dict[str, Set[Union[Tuple[str, ...], str]]] = {}
         for rule in rule_set:
@@ -267,3 +269,20 @@ def _error_message(bad_set: AbstractSet, message_singular: str, message_plural: 
             raise ValueError(message_singular.format(*quoted_members));
         else:
             raise ValueError(message_plural.format((", ").join(quoted_members)))
+
+# first some utility procedures
+def _get_new_variable(variable_set):
+    new_variable = 'V'
+    counter = 1
+    while new_variable in variable_set:
+        new_variable = 'V' + str(counter)
+        counter += 1
+    return new_variable
+
+# powerset code an itertools recipe,
+# from https://docs.python.org/3/library/itertools.html#recipes
+def _powerset(iterable):
+    s = list(iterable)
+    return chain.from_iterable(
+        combinations(s, r) for r in range(len(s)+1)
+    )
