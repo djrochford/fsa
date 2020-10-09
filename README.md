@@ -135,17 +135,18 @@ The method will raise a ValueError exception if any of the following conditions 
   * the input regex does not have properly matching parentheses.
 
 ### FST
-Parameters:
-  * transition function: {(hashable, str): (hashable, str)}
-  * start-state: str
+Arguments:
+  * `transition_function`: Mapping[Tuple[State, Symbol], Tuple[State, Symbol]]
+  * `start_state`: State
+(Where States are strings and Symbols are strings of one length.)
 
-A finite-state transducer class. Takes two parameters: a transition function, and a start state, in that order.
+A finite-state transducer class. Takes keyword arguments: a `transition_function`, and a `start_state`.
 
-The transition function should be specified as a dictionary with tuple keys and values. These keys implicitly define the fst's state-set and input alphabet; the first elements of the tuples represent the fst's states, and the second elements are the symbols in the alphabet.
+The keys of the transition function implicitly define the fst's state-set and input alphabet; the first elements of the tuples represent the fst's states, and the second elements are the symbols in the alphabet.
 
 Similarly, the values should be tuples with the first element a state, the second member a symbol in the output alphabet, and the output alphabet (though not the state set) is implicitly defined by these values.
 
-The fst expects the symbols of both alphabets to be one character strings. States can be anything hashable. (Note that, for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+The fst expects the symbols of both alphabets to be one character strings.
 
 The class will raise a ValueError exception on instantiation if any of the following are true:
  * the start state is not a member of the set of states inferred from the transition function;
@@ -157,12 +158,13 @@ The exception message will specify which of these five conditions things trigger
 
 #### Properties
 An FST instance has the following properties:
- 1. `transition_function`: the FST's transition function, specified as a dictionary. Equal to the dictionary you passed in on instantiation.
- 2. `states`: the set of the FST's states. Inferred from the FST's transition_function on instantiation.
- 3. `start_state`: the FST's start state. Equal to the parameter you passed in on instantiation.
+ 1. `transition_function`: the FST's transition function, specified as a mapping. Equal to the mapping you passed in on instantiation.
+ 2. `states`: the set of the FST's states. Inferred from the FST's `transition_function` on instantiation.
+ 3. `start_state`: the FST's start state. Equal to the argument you passed in on instantiation.
  4. `input_alphabet`: the alphabet of the language the FST accepts as input. Inferred from the transition function on instantiation.
  5. `output_alphabet`: the alphabet of the language the FST outputs. Inferred from the transition function on instantiation.
-Each of the above are accessible using a `get` method, of the form `get_[PROPERTY]`. For example `my_fst.get_transition_function()` returns a copy of my_fst's transition function.
+All properties are immutable. Accessing the `transition_function` will return a dict, but it will be a copy of the FST's transition function;
+mutating it will not affect the FST's transition function.
 
 #### Mehods
 

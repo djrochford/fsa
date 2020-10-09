@@ -19,22 +19,18 @@ TransitionFunction = Mapping[Tuple[State, Symbol], Tuple[State, Symbol]]
 
 class FST(_Base):
     """
-    A finite state transducer class. Takes two parameters: a transition
-    function, and a start state, in that order.
+    A finite state transducer class. Takes two keyword arguments:
+        - `transition_function`:  Mapping[Tuple[State, Symbol], Tuple[State, Symbol]]
+        - `start_state`: State
+    (Where states are strings and Symbols are length-one strings.)
 
-    The transition function should be specified as a dictionary with tuple
-    keys and values. These keys implicitly define the fst's state-set and input
-    alphabet; the first elements of the tuples represent the fst's states, and
-    the second elements are the symbols in the alphabet.
+    The keys of the `transition_function` implicitly define the fst's state-set
+    and input alphabet; the first elements of the tuples represent the fst's
+    states, and the second elements are the symbols in the alphabet.
 
     Similarly, the values should be tuples with the first element a state, the
     second member a symbol in the output alphabet, and the output alphabet
     (though not the state set) is implicitly defined by these values.
-
-    The fst expects the symbols of both alphabets to be one character strings.
-    States can be anything hashable. (Note that, for reasons of hashability,
-    you'll need to use frozensets, rather than sets, if you want to have sets
-    as states.)
 
     The class will raise a ValueError exception on instantiation if any of the
     following are true:
