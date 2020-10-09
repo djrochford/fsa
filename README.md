@@ -100,15 +100,15 @@ mutating it will not affect the NFA's transition function.
 
 * `accepts`: str -> boolean. `my_nfa.accepts("some string")` returns `True` if my_nfa accepts "some string", and `False` otherwise. Will raise a ValueError exception is the string contains symbols that aren't in the NFA's alphabet.
 
-* `determinize`: -> DFA. `my_nfa.determinize()` returns a DFA instance that recognizes the same language as my_nfa. WARNING: The set of DFA states is the power-set of the set of NFA states. For related reasons, the time complexity of this method is exponential in the number of states of the NFA. Don't determinize big NFAs.
+* `determinize`: -> DFA. `my_nfa.determinize()` returns a DFA instance that recognizes the same language as my_nfa. WARNING: The set of DFA states has the cardinality of the power-set of the set of NFA states. For related reasons, the time complexity of this method is exponential in the number of states of the NFA. Don't determinize big NFAs.
 
 * `star`: -> NFA Let A be the language recognised by my_nfa. `my_nfa.star()` returns an NFA that recognizes A* --i.e., the set of all strings formed by concatenating any number of members of A. You should really think of this as a unary operator, rather than a method; I'd write it as such if I knew how to make the syntax work.
 
 There is also one **static method**:
 
-* `fit`: str, {str} -> NFA. `NFA.fit(regex-string, alphabet-set)` returns an NFA that recognises the language defined by regex-string and alphabet-set.
+* `fit`: str, str -> NFA. `NFA.fit(regex-string, alphabet-set)` returns an NFA that recognises the language defined by `regex-string` and `alphabet-set`.
 
-The alphabet-set parameter is optional; it's default value is `string.printable` -- i.e., the set of "printable" characters, which includes the standard ASCII letters and digits, and most common punctuation and white space.
+The alphabet-set argument is optional; it's default value is `string.printable` -- i.e., the set of "printable" characters, which includes the standard ASCII letters and digits, and most common punctuation and white space.
 
 Actually, that's not quite right -- the default value is `string.printable` *minus* parentheses, the vertical bar and the star symbol, for reasons that I will explain presently.
 
