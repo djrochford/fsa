@@ -57,15 +57,14 @@ Each of the above are accessible using a `get` method, of the form `get_[PROPERT
 * `cf_grammarize`: -> CFG. `my_dfa.cf_grammarize()` returns a CFG whose language is exactly the on accepted by my_dfa.
 
 ### NFA
-Parameters:
-  * transition function: {(hashable, str): {hashable}}
-  * start-state: str
-  * accept-states: {hashable}
-A nondeterministic finite automaton class. Takes three parameters: a transition function, a start state and a set of accept states, in that order.
+Arguments:
+  * `transition_function`: Mapping[Tuple[State, Symbol], AbstractSet[State]]
+  * `start_state`: State
+  * `accept_states`: AbstractSet[State]
+(Where States are strings, and Symbols are one-char strings.)
+A nondeterministic finite automaton class. Takes three keyword arguments: a transition function, a start state and a set of accept states.
 
-The transition function should be specified as a dictionary with tuple keys. These keys implicitly define the nfa's state-set and alphabet; the first elements of the tuples represent the nfa's states, and the second elements are the symbols in the alphabet.
-
-The nfa expects the symbols of the alphabet to be one character strings. States can be anything hashable. (Note that, for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+The transition function's keys implicitly define the nfa's state-set and alphabet; the first elements of the tuples represent the nfa's states, and the second elements are the symbols in the alphabet.
 
 The domain of the transition function is the power-set of the nfa's state set --- i.e., the values of the transition function dictionary should be sets (or frozensets). The empty set is a valid value; in fact, you are required to specify that the successor set for a given state-symbol pair is the empty set, if it is.
 
@@ -82,13 +81,14 @@ The exception message will specify which of these six conditions triggered the e
 
 #### Properties
 An NFA instance has the following properties:
-  1. `transition_function`, the transition function of the NFA specified as a dictionary. Equal to the dictionary you passed in on instantiation, if that's how the NFA instance was created;
-  2. `states`, the set of states of the NFA. Inferred from the transition-function parameter on instantiation, if that's how the NFA instance was created;
-  3. `alphabet`, the set of symbols that appear in the language of the NFA. Inferred from the transition-function on instantion, if that's how the nfa instance was created;
-  4. `start_state`, the start state of the NFA. Equal to the start-start parameter you passed in on instantiation, if that's how the NFA instance was created;
-  5. `accept_states`, the set of the nfa's accept-states. Equal to the accept_state parameter you passed in on instantiation, it that's how the NFA instance was created.
+  1. `transition_function`, the transition function of the NFA. Equal to the mapping you passed in on instantiation, if that's how the NFA instance was created;
+  2. `states`, the set of states of the NFA. Inferred from the `transition_function` argument on instantiation, if that's how the NFA instance was created;
+  3. `alphabet`, the set of symbols that appear in the language of the NFA. Inferred from the `transition_function` on instantion, if that's how the NFA instance was created;
+  4. `start_state`, the start state of the NFA. Equal to the `star_start` argument you passed in on instantiation, if that's how the NFA instance was created;
+  5. `accept_states`, the set of the nfa's accept-states. Equal to the `accept_state` parameter you passed in on instantiation, it that's how the NFA instance was created.
+All properties are immutable. Accessing the `transition_function` will return a dict, but it will be a copy of the NFA's transition function;
+mutating it will not affect the NFA's transition function.
 
-Each of the above are accessible using a `get` method, of the form `get_[PROPERTY]`. For example `my_nfa.get_transition_function()` returns a copy of my_nfa's transition function.
 
 #### Operators
 

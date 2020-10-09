@@ -58,16 +58,10 @@ class _FSA(_Base):
 
     @property
     def alphabet(self) -> FrozenSet[Symbol]:
-        """
-        Getter for finite state automaton's `alphabet` property.
-        """
         return self._alphabet
 
     @property
     def accept_states(self) -> AbstractSet[State]:
-        """
-        Getter for finite state automaton's `accept_states` property.
-        """
         return self._accept_states
 
     def _well_defined(self) -> None:
@@ -180,18 +174,15 @@ MutableNfaTF = MutableMapping[Tuple[State, Symbol], Set[State]]
 
 class NFA(_FSA):
     """
-    A nondeterministic finite automaton class. Takes three parameters: a
-    transition function, a start state and a set of accept states.
+    A nondeterministic finite automaton class. Takes three keyword arguments:
+     - `transition_function`: Mapping[Tuple[State, Symbol], AbstractSet[State]]
+     - `start_state`: State
+     - `accept_states`: AbstractSet[State]
+    (Where States are strings, and Symbols are one-char strings.)
 
-    The transition function should be specified as a dictionary with tuple
-    keys. These keys implicitly define the nfa's state-set and alphabet; the
-    first elements of the tuples represent the nfa's states, and the second
-    elements are the symbols in the alphabet.
-
-    The nfa expects the symbols of the alphabet to be one character strings.
-    States can be anything hashable. (Note that, for reasons of hashability,
-    you'll need to use frozensets, rather than sets, if you want to have sets
-    as states.)
+    The transition function' keys implicitly define the nfa's state-set and
+    alphabet; the first elements of the tuples represent the nfa's states, and
+    the second elements are the symbols in the alphabet.
 
     The domain of the transition function is the power-set of the nfa's state
     set --- i.e., the values of the transition function dictionary should be
@@ -251,7 +242,7 @@ class NFA(_FSA):
         """
         Let A be the language recognised by nfa1, and B be the language
         recognized by nfa2. `nfa1 + nfa2` returns an nfa that recognizes A
-        concat B -- i.e., the language consisten of the set of strins of the
+        concat B -- i.e., the language consisting of the set of strings of the
         form a concat b, where a is an element of A and b is an element of B.
         Note that this `+` operation is not commutative.
         """
@@ -382,10 +373,10 @@ class NFA(_FSA):
     def determinize(self) -> "DFA":
         """Returns a DFA that recognizes the same same language as the NFA
         instance.
-        WARNING: The set of DFA states is the power-set of the set of NFA
-        states. For related reasons, the time complexity of this method is
-        exponential in the number of states of the NFA. Don't determinize big
-        NFAs.
+        WARNING: The set of DFA states has the cardinality of the power-set of
+        the set of NFA states. For related reasons, the time complexity of this
+        method is exponential in the number of states of the NFA. Don't
+        determinize big NFAs.
         """
         # powerset code an itertools recipe, from
         # https://docs.python.org/3/library/itertools.html#recipes
@@ -454,25 +445,24 @@ class NFA(_FSA):
         punctuation and white space.
 
         Actually, that's not quite right -- the default value is
-        string.printable *minus* PARENTHE, the vertical bar, the star
+        string.printable *minus* parentheses, the vertical bar, the star
         symbol, and the tilde, for reasons that I will explain presently.
 
         As of now, the syntax of the regular expressions that this method takes
         as input is very simple -- much simpler than the standard python
         regular expresssions. All characters are intepreted as literals for
         symbols in the alphabet except for '(', '')', '|', '*', '•', '€' and
-        'Ø'. The PARENTHE, vertical bar and star mean what you'd expect
-        them to mean if you are familiar with regular expressions as written in
-        programming languages. '•' (option-8 on a mac keyboard) means
-        concatenation. You can leave concatentation implicit, as is usual; no
-        need to write '•'' explicitly if you don't want to. But it gets used
-        internally.'€' (option-shift-2) is used to match the empty string
-        (because it kind of looks like an epsilon); there's no other way to
-        match, for instance, {'', '0'} with the current syntax. (Quick
-        challenge: it's not totally obvious how to match the empty string in
-        normal python regex syntax either, though it can be done; give it a
-        go.) 'Ø' (option-shift-o) represents the empty set; you can match to
-        the empty language with it.
+        'Ø'. The parentheses, vertical bar and star mean what you'd expect
+        them to mean if you are familiar with regular expressions. '•'
+        (option-8 on a mac keyboard) means concatenation. You can leave
+        concatentation implicit, as is usual; no need to write '•'' explicitly
+        if you don't want to. But it gets used internally. '€' (option-shift-2)
+        is used to match the empty string (because it kind of looks like an
+        epsilon); there's no other way to match, for instance, {'', '0'} with
+        the current syntax. (Quick challenge: it's not totally obvious how to
+        match the empty string in normal python regex syntax either, though it
+        can be done; give it a go.) 'Ø' (option-shift-o) represents the empty
+        set; you can match to the empty language with it.
 
         For reaons related to the above, the characters '(', ')', '|', '*',
         '•', '€' and 'Ø' cannot be symbols in the alphabet of the NFA. (My
@@ -481,13 +471,10 @@ class NFA(_FSA):
         the empty-set symbol. If, by some miracle, there is someone who cares
         about this, I will change the symbol for empty-set.)
 
-        In the absence of PARENTHE, the order of operations is: `*`, then
+        In the absence of parentheses, the order of operations is: `*`, then
         `•`, then `|`.
 
-        I realise the simplicity of the allowed syntax is lame; some day it
-        might be better.
-
-        The method uses a version of Dijkstra's shunting yard algorithm to
+        This method uses a version of Dijkstra's shunting yard algorithm to
         parse the regex and build the NFA.
 
         The method will raise a ValueError exception if any of the following
@@ -498,7 +485,7 @@ class NFA(_FSA):
             and not one of the above veboten characters,
             3. the input regex contain a binary operator followed by an
             operator, or
-            4. the input regex does not have properly matching PARENTHE.
+            4. the input regex does not have properly matching parentheses.
         """
         operator_to_operation = {
             '|': NFA.__or__,
