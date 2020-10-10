@@ -11,16 +11,15 @@ There are thus far two sub-modules: [fsa](#fsa) and [cfg](#cfg)...
 A module for dealing with finite-state automata, and their ilk. There are three classes you import with the fsa sub-module:
 
 ### DFA
-Parameters:
-  * transition function: {(hashable, str): hashable}
-  * start-state: str, 
-  * accept-states: {str}
+Arguments
+  - `transition_function`: Mapping[Tuple[State, Symbol], State]
+  - `start_state`: State
+  - `accept_state`: AbstractSet[State]
+    (where States are strings and Symbols are one-char strings).
 
-A deterministic finite automaton class. Takes three parameters: a transition function, a start state and a set of accept states, in that order.
+A deterministic finite automaton class. Takes three keyword arguments: a transition function, a start state and a set of accept states.
 
-The transition function should be specified as a dictionary with tuple keys. These keys implicitly define the dfa's state-set and alphabet; the first elements of the tuples represent the fsa's states, and the second elements are the symbols in the alphabet.
-
-The dfa expects the symbols of the alphabet to be one character strings. States can be anything hashable. (Note that, for reasons of hashability, you'll need to use frozensets, rather than sets, if you want to have sets as states.)
+The keys of the `transition_function` implicitly define the dfa's state-set and alphabet; the first elements of the tuples represent the fsa's states, and the second elements are the symbols in the alphabet.
 
 The class will raise a ValueError exception on instantiation if any of the following are true:
   * the start state is not a member of the set of states inferred from the transition function;
@@ -32,13 +31,14 @@ The exception message will specify which of these above conditions things trigge
 
 #### Properties
 A DFA instance has the following properties:
-  1. `transition_function`, the transition function of the dfa specified as a dictionary. Equal to the dictionary you passed in on instantiation, if that's how the dfa instance was created;
-  2. `states`, the set of states of the dfa. Inferred from the transition-function parameter on instantiation, if that's how the dfa instance was created;
-  3. `alphabet`, the set of symbols that appear in the language of the dfa. Inferred from the transition-function on instantiona, if that's how the dfa instance was created;
-  4. `start_state`, the start state of the dfa. Equal to the start-start parameter you passed in on instantiation, if that's how the dfa instance was created;
-  5. `accept_states`, the set of the dfa's accept-states. Equal to the accept_state parameter you passed in on instantiation, it that's how the dfa instance was created.
+  1. `transition_function`, the transition function of the dfa. Equal to the `transition_function` you passed in on instantiation, if that's how the dfa instance was created;
+  2. `states`, the set of states of the dfa. Inferred from the `transition_function` argument on instantiation, if that's how the dfa instance was created;
+  3. `alphabet`, the set of symbols that appear in the language of the dfa. Inferred from the `transition_function` on instantiation, if that's how the dfa instance was created;
+  4. `start_state`, the start state of the dfa. Equal to the `start_start` argument you passed in on instantiation, if that's how the dfa instance was created;
+  5. `accept_states`, the set of the dfa's accept-states. Equal to the `accept_state` argument you passed in on instantiation, it that's how the dfa instance was created.
+All properties are immutable. Accessing the `transition_function` will return a dict, but it will be a copy of the DFA's transition function;
+mutating it will not affect the DFA's transition function.
 
-Each of the above are accessible using a `get` method, of the form `get_[PROPERTY]`. For example `my_dfa.get_transition_function()` returns a copy of my_dfa's transition function.
 
 #### Operators
 
@@ -48,13 +48,12 @@ Each of the above are accessible using a `get` method, of the form `get_[PROPERT
 
 #### Methods
 
-* `accepts`: str -> boolean, `my_dfa.accepts("some string")` returns `True` if my_dfa accepts "some string", and `False` otherwise. Will raise a ValueError exception is the string contains symbols that aren't in the DFA's alphabet.
+* `accepts`: str -> boolean, `my_dfa.accepts("some string")` returns `True` if my_dfa accepts `"some string"`, and `False` otherwise. Will raise a ValueError exception is the string contains symbols that aren't in the DFA's alphabet.
 
-* `encode`: -> str. Let A be the language accepted by my_dfa. `my_dfa.encode()` returns a regex string that generates A. That regex string is liable to be much more complicated than necessary; maybe I'll figure out how to improve on average simplicity, eventually. Note that the regex language I use is much simpler than the standard python regex language (though it is technically equivalent in expressive power). See the `fit` method in the [NFA](#NFA) section for more details.
+* `encode`: -> str. Let A be the language accepted by my_dfa. `my_dfa.encode()` returns a regex string that generates A. That regex string is liable to be much more complicated than necessary; maybe I'll figure out how to improve on average simplicity, eventually. See the `fit` method in the [NFA](#NFA) section for more details on the regex syntax.
 
 * `non_determinize`: -> NFA.`my_dfa.non_determinize()` returns an NFA that accepts the same language as my_dfa.
 
-* `cf_grammarize`: -> CFG. `my_dfa.cf_grammarize()` returns a CFG whose language is exactly the on accepted by my_dfa.
 
 ### NFA
 Arguments:

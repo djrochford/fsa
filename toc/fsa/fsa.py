@@ -616,19 +616,14 @@ DfaTransitionFunction = Mapping[Tuple[State, Symbol], State]
 
 class DFA(_FSA):
     """
-    A deterministic finite automaton class. Takes three parameters: a
-    transition function, a start state and a set of accept states, in that
-    order.
+    A deterministic finite automaton class. Takes three keyword arguments: 
+      - `transition_function`: Mapping[Tuple[State, Symbol], State]
+      - `start_state`: State
+      - `accept_state`: AbstractSet[State]
+    (where States are strings and Symbols are one-char strings).
 
-    The transition function should be specified as a dictionary with tuple
-    keys. These keys implicitly define the dfa's state-set and alphabet; the
-    first elements of the tuples represent the fsa's states, and the second
-    elements are the symbols in the alphabet.
-
-    The dfa expects the symbols of the alphabet to be one character strings.
-    States can be anything hashable. (Note that, for reasons of hashability,
-    you'll need to use frozensets, rather than sets, if you want to have sets
-    as states.)
+    The keys of the `transition_function` implicitly define the dfa's state-set
+    and alphabet.
 
     The class will raise a ValueError exception on instantiation if any of th
      following are true:
@@ -755,8 +750,7 @@ class DFA(_FSA):
         Let A be the language accepted by dfa. `dfa.encode()` returns a regex
         string that generates A. That regex string is liable to be much more
         complicated than necessary; maybe I'll figure out how to improve on
-        average simplicity, eventually. Note that the regex language I use is
-        much simpler than the standard python regex language.
+        average simplicity, eventually.
         """
         gnfa = self._gnfize()
         while len(gnfa.states) > 2:
